@@ -117,7 +117,7 @@ export default function NoteCanvasPage() {
               onChange={(e) => setNoteContent(e.target.value)}
               placeholder={t('editor.placeholder')}
               className="w-full h-full rounded-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-4 resize-none text-base"
-              aria-label="Note content editor"
+              aria-label={t('editor.noteEditorLabel')}
             />
           </CardContent>
         </Card>

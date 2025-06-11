@@ -1,3 +1,4 @@
+
 export default {
   appTitle: 'NoteCanvas',
   appDescription: 'A browser-based scratchpad with AI-powered assistance.',
@@ -18,6 +19,7 @@ export default {
     h3: 'Heading 3',
     ul: 'Unordered List',
     ol: 'Ordered List',
+    noteEditorLabel: 'Note content editor',
   },
   export: {
     title: 'Export Note',

@@ -1,3 +1,4 @@
+
 export default {
   appTitle: '笔记画布',
   appDescription: '一个具有 AI 辅助功能的浏览器笔记应用。',
@@ -18,6 +19,7 @@ export default {
     h3: '标题 3',
     ul: '无序列表',
     ol: '有序列表',
+    noteEditorLabel: '笔记内容编辑器',
   },
   export: {
     title: '导出笔记',
