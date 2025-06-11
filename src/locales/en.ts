@@ -16,6 +16,8 @@ export default {
     clearCanvasTooltip: 'Clear Canvas',
     undoTooltip: 'Undo',
     eraserTooltip: 'Eraser',
+    saveTooltip: 'Save',
+    saveAsTooltip: 'Save As',
   },
   export: {
     title: 'Export Note',
@@ -47,5 +49,3 @@ export default {
     copyright: '© {year} NoteCanvas. All rights reserved.',
   }
 } as const;
-
-    

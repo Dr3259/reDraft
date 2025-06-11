@@ -16,6 +16,8 @@ export default {
     clearCanvasTooltip: '清空画布',
     undoTooltip: '撤销',
     eraserTooltip: '橡皮擦',
+    saveTooltip: '保存',
+    saveAsTooltip: '另存为',
   },
   export: {
     title: '导出笔记',
@@ -47,5 +49,3 @@ export default {
     copyright: '© {year} 笔记画布. 版权所有.',
   }
 } as const;
-
-    

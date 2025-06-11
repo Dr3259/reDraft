@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/locales/client';
 import { LanguageSwitcher } from '@/components/language-switcher';
-import { Eraser, Trash2, Undo2 } from 'lucide-react';
+import { Eraser, Trash2, Undo2, Save, Download } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const ERASER_WIDTH = 20;
@@ -264,8 +264,6 @@ export default function WhiteboardPage() {
     context.fillRect(0, 0, canvas.width, canvas.height);
 
     // 2. Explicitly re-apply current tool's styles to the context
-    // This ensures the context is immediately ready for the current tool
-    // and for saving its state correctly.
     if (currentTool === 'pen') {
       context.strokeStyle = PEN_COLOR;
       context.lineWidth = PEN_WIDTH;
@@ -277,9 +275,8 @@ export default function WhiteboardPage() {
     }
     context.lineCap = 'round';
     context.lineJoin = 'round';
-    // Do not call beginPath() here, that's for active drawing strokes.
 
-    // 3. Save this cleared state (which now has a correctly styled context)
+    // 3. Save this cleared state
     saveCanvasState(); 
   };
 
@@ -300,6 +297,31 @@ export default function WhiteboardPage() {
 
   const handleToggleEraser = () => {
     setCurrentTool(prevTool => (prevTool === 'pen' ? 'eraser' : 'pen'));
+  };
+
+  const handleSaveCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dataUrl = canvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.download = 'whiteboard.png';
+    link.href = dataUrl;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleSaveCanvasAs = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dataUrl = canvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    link.download = `whiteboard-${timestamp}.png`;
+    link.href = dataUrl;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
   
   const undoDisabled = history.length <= 1;
@@ -339,6 +361,36 @@ export default function WhiteboardPage() {
       )}
       <TooltipProvider>
         <div className="absolute bottom-4 right-4 z-10 flex gap-2">
+           <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={handleSaveCanvas}
+                aria-label={t('whiteboard.saveTooltip')}
+              >
+                <Save className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{t('whiteboard.saveTooltip')}</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={handleSaveCanvasAs}
+                aria-label={t('whiteboard.saveAsTooltip')}
+              >
+                <Download className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{t('whiteboard.saveAsTooltip')}</p>
+            </TooltipContent>
+          </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button 
@@ -390,4 +442,3 @@ export default function WhiteboardPage() {
     </div>
   );
 }
-
