@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { useAutosave } from '@/hooks/useAutosave';
 import { ToolbarButton } from '@/components/editor/ToolbarButton';
 import { useI18n } from '@/locales/client';
+import { LanguageSwitcher } from '@/components/language-switcher';
 
 type FormatType = 'bold' | 'italic' | 'h1' | 'h2' | 'h3' | 'ul' | 'ol';
 
@@ -94,16 +95,19 @@ export default function NoteCanvasPage() {
       <main className="flex-grow flex flex-col">
         <Card className="shadow-lg flex-grow flex flex-col rounded-none border-0">
           <CardHeader className="bg-muted/30 p-3 border-b rounded-none">
-            <div className="flex items-center gap-2 flex-wrap">
-              {formattingTools.map(tool => (
-                <ToolbarButton
-                  key={tool.type}
-                  tooltipLabel={tool.label}
-                  icon={tool.icon}
-                  onClick={() => handleFormat(tool.type)}
-                  aria-label={tool.label}
-                />
-              ))}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                {formattingTools.map(tool => (
+                  <ToolbarButton
+                    key={tool.type}
+                    tooltipLabel={tool.label}
+                    icon={tool.icon}
+                    onClick={() => handleFormat(tool.type)}
+                    aria-label={tool.label}
+                  />
+                ))}
+              </div>
+              <LanguageSwitcher />
             </div>
           </CardHeader>
           <CardContent className="p-0 flex-grow">

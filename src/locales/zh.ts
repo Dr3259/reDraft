@@ -5,7 +5,7 @@ export default {
     title: '笔记画布',
   },
   languageSwitcher: {
-    english: 'English',
+    english: '英文',
     chinese: '中文',
     changeLanguage: '切换语言',
   },
