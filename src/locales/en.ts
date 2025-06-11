@@ -10,29 +10,36 @@ export default {
     chinese: '中文',
     changeLanguage: 'Change language',
   },
+  themeSwitcher: {
+    title: 'Change Theme',
+    whiteboard: 'Whiteboard',
+    blackboard: 'Blackboard',
+    eyecare: 'Eye Care',
+    reading: 'Reading Mode',
+  },
   whiteboard: {
     textInputPlaceholder: 'Type here...',
     canvasLabel: 'Whiteboard drawing area',
     clearCanvasTooltip: 'Clear Canvas',
     undoTooltip: 'Undo',
     eraserTooltip: 'Eraser',
-    saveDraftTooltip: 'Save New Draft', // Updated
+    saveDraftTooltip: 'Save New Draft',
     downloadTooltip: 'Download as PNG',
-    manageDraftsTooltip: 'Manage Saved Drafts', // New
+    manageDraftsTooltip: 'Manage Saved Drafts',
     draftSavedTitle: 'Draft Saved',
-    draftSavedDescription: "Draft '{draftName}' has been saved in this browser.", // Updated
+    draftSavedDescription: "Draft '{draftName}' has been saved in this browser.",
     draftLoadedTitle: 'Draft Loaded',
-    draftLoadedDescription: "Draft '{draftName}' has been loaded.", // Updated
+    draftLoadedDescription: "Draft '{draftName}' has been loaded.",
     draftSaveErrorTitle: 'Save Error',
     draftSaveErrorDescription: 'Could not save draft to browser storage.',
     draftLoadErrorTitle: 'Load Error',
-    draftLoadErrorSpecificDescription: 'Could not load the selected draft. It might be corrupted.', // Updated
-    draftsDialogTitle: 'Saved Drafts', // New
-    draftsDialogDescription: 'Select a draft to load it onto the canvas.', // New
-    loadDraftButton: 'Load', // New
-    noDraftsMessage: 'No drafts saved yet.', // New
-    draftNamePrefix: 'Draft', // New
-    closeDialogButton: 'Close', // New
+    draftLoadErrorSpecificDescription: 'Could not load the selected draft. It might be corrupted.',
+    draftsDialogTitle: 'Saved Drafts',
+    draftsDialogDescription: 'Select a draft to load it onto the canvas.',
+    loadDraftButton: 'Load',
+    noDraftsMessage: 'No drafts saved yet.',
+    draftNamePrefix: 'Draft',
+    closeDialogButton: 'Close',
   },
   export: {
     title: 'Export Note',

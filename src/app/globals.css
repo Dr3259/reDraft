@@ -41,7 +41,12 @@ body {
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 0 0% 90%;
     --sidebar-ring: 177 25% 60%;
+
+    /* Canvas Theme Variables */
+    --canvas-bg-hsl: 0 0% 100%; /* Default: White */
+    --canvas-pen-hsl: 0 0% 0%;   /* Default: Black */
   }
+
   .dark {
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
@@ -49,13 +54,13 @@ body {
     --card-foreground: 0 0% 98%;
     --popover: 0 0% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 177 25% 70%; /* Light teal for dark mode too, or a darker variant if needed */
+    --primary: 177 25% 70%; 
     --primary-foreground: 0 0% 10%;
     --secondary: 0 0% 14.9%;
     --secondary-foreground: 0 0% 98%;
     --muted: 0 0% 14.9%;
     --muted-foreground: 0 0% 63.9%;
-    --accent: 128 29% 68%; /* Pale sea green for dark mode too */
+    --accent: 128 29% 68%; 
     --accent-foreground: 0 0% 10%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
@@ -75,6 +80,29 @@ body {
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 177 25% 50%;
+
+    /* Dark mode does not necessarily mean blackboard for canvas */
+    /* Keep canvas defaults unless a specific canvas theme is applied */
+  }
+
+  .theme-whiteboard {
+    --canvas-bg-hsl: 0 0% 100%; /* White */
+    --canvas-pen-hsl: 0 0% 0%;   /* Black */
+  }
+
+  .theme-blackboard {
+    --canvas-bg-hsl: 220 13% 20%; /* Dark Blue/Grey */
+    --canvas-pen-hsl: 0 0% 95%;   /* Light Grey/White */
+  }
+
+  .theme-eyecare {
+    --canvas-bg-hsl: 39 55% 90%;  /* Pale Yellow/Sepia */
+    --canvas-pen-hsl: 39 20% 25%;   /* Dark Brown */
+  }
+
+  .theme-reading {
+    --canvas-bg-hsl: 40 30% 92%; /* Very Light Beige */
+    --canvas-pen-hsl: 0 0% 20%;   /* Dark Grey */
   }
 }
 
@@ -84,5 +112,9 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+  /* Apply canvas background to the main app container */
+  .app-canvas-container {
+    background-color: hsl(var(--canvas-bg-hsl));
   }
 }

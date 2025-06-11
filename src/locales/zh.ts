@@ -10,29 +10,36 @@ export default {
     chinese: '中文',
     changeLanguage: '切换语言',
   },
+  themeSwitcher: {
+    title: '切换主题',
+    whiteboard: '白板模式',
+    blackboard: '黑板模式',
+    eyecare: '护眼模式',
+    reading: '阅读模式',
+  },
   whiteboard: {
     textInputPlaceholder: '在此输入...',
     canvasLabel: '白板绘画区域',
     clearCanvasTooltip: '清空画布',
     undoTooltip: '撤销',
     eraserTooltip: '橡皮擦',
-    saveDraftTooltip: '保存新草稿', // 更新
+    saveDraftTooltip: '保存新草稿',
     downloadTooltip: '下载为 PNG 图片',
-    manageDraftsTooltip: '管理已存草稿', // 新增
+    manageDraftsTooltip: '管理已存草稿',
     draftSavedTitle: '草稿已保存',
-    draftSavedDescription: "草稿 '{draftName}' 已保存在此浏览器中。", // 更新
+    draftSavedDescription: "草稿 '{draftName}' 已保存在此浏览器中。",
     draftLoadedTitle: '草稿已加载',
-    draftLoadedDescription: "草稿 '{draftName}' 已加载。", // 更新
+    draftLoadedDescription: "草稿 '{draftName}' 已加载。",
     draftSaveErrorTitle: '保存错误',
     draftSaveErrorDescription: '无法将草稿保存到浏览器存储。',
     draftLoadErrorTitle: '加载错误',
-    draftLoadErrorSpecificDescription: '无法加载选中的草稿，它可能已损坏。', // 更新
-    draftsDialogTitle: '已存草稿', // 新增
-    draftsDialogDescription: '选择一个草稿加载到画布上进行编辑。', // 新增
-    loadDraftButton: '加载', // 新增
-    noDraftsMessage: '暂无已存草稿。', // 新增
-    draftNamePrefix: '草稿', // 新增
-    closeDialogButton: '关闭', // 新增
+    draftLoadErrorSpecificDescription: '无法加载选中的草稿，它可能已损坏。',
+    draftsDialogTitle: '已存草稿',
+    draftsDialogDescription: '选择一个草稿加载到画布上进行编辑。',
+    loadDraftButton: '加载',
+    noDraftsMessage: '暂无已存草稿。',
+    draftNamePrefix: '草稿',
+    closeDialogButton: '关闭',
   },
   export: {
     title: '导出笔记',
