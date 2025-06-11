@@ -40,6 +40,7 @@ export default {
     noDraftsMessage: 'No drafts saved yet.',
     draftNamePrefix: 'Draft',
     closeDialogButton: 'Close',
+    draftThumbnailAlt: 'Thumbnail of draft {draftName}',
   },
   export: {
     title: 'Export Note',

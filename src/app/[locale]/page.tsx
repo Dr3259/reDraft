@@ -76,10 +76,9 @@ export default function WhiteboardPage() {
   const [isDraftsDialogOpen, setIsDraftsDialogOpen] = useState(false);
 
   const [currentTheme, setCurrentTheme] = useState<CanvasTheme>('whiteboard');
-  const [effectivePenColor, setEffectivePenColor] = useState('hsl(0 0% 0%)'); // Default black
-  const [effectiveEraserColor, setEffectiveEraserColor] = useState('hsl(0 0% 100%)'); // Default white
+  const [effectivePenColor, setEffectivePenColor] = useState('hsl(0 0% 0%)'); 
+  const [effectiveEraserColor, setEffectiveEraserColor] = useState('hsl(0 0% 100%)'); 
 
-  // Effect for loading theme from localStorage
   useEffect(() => {
     const savedTheme = localStorage.getItem(LOCAL_STORAGE_THEME_KEY) as CanvasTheme | null;
     if (savedTheme && themeClasses[savedTheme]) {
@@ -87,15 +86,12 @@ export default function WhiteboardPage() {
     }
   }, []);
 
-  // Effect for applying theme class and updating effective colors
   useEffect(() => {
     if (mainContainerRef.current) {
       Object.values(themeClasses).forEach(cls => mainContainerRef.current!.classList.remove(cls));
       mainContainerRef.current.classList.add(themeClasses[currentTheme]);
       localStorage.setItem(LOCAL_STORAGE_THEME_KEY, currentTheme);
 
-      // Force style recalculation and then read CSS variables
-      // Using a timeout to ensure styles are applied before reading
       setTimeout(() => {
         if (mainContainerRef.current) {
           const computedStyle = getComputedStyle(mainContainerRef.current);
@@ -108,7 +104,6 @@ export default function WhiteboardPage() {
     }
   }, [currentTheme]);
 
-  // Effect for initial canvas setup and theme-based re-initialization
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !effectiveEraserColor || !effectivePenColor) return;
@@ -129,12 +124,11 @@ export default function WhiteboardPage() {
         setHistory([initialImageData]);
     }
 
-    // Set drawing styles based on current tool and effective colors
     if (currentTool === 'pen') {
       context.strokeStyle = effectivePenColor;
       context.lineWidth = PEN_WIDTH;
-    } else { // Eraser
-      context.strokeStyle = effectiveEraserColor; // Eraser draws with background color
+    } else { 
+      context.strokeStyle = effectiveEraserColor; 
       context.lineWidth = ERASER_WIDTH;
     }
     context.lineCap = 'round';
@@ -142,9 +136,8 @@ export default function WhiteboardPage() {
     context.globalCompositeOperation = 'source-over';
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveEraserColor, effectivePenColor]); // Also re-run if canvas parent resizes, handled by resize effect
+  }, [effectiveEraserColor, effectivePenColor]); 
 
-  // Effect for loading drafts list from localStorage
   useEffect(() => {
     const loadDraftsFromStorage = () => {
       const savedDraftsJson = localStorage.getItem(LOCAL_STORAGE_DRAFTS_KEY);
@@ -161,7 +154,6 @@ export default function WhiteboardPage() {
     loadDraftsFromStorage();
   }, []);
 
-  // Effect for handling canvas resize
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -180,15 +172,11 @@ export default function WhiteboardPage() {
       currentCanvas.width = width;
       currentCanvas.height = height;
       
-      // Re-apply background color first for the new size
       context.fillStyle = effectiveEraserColor;
       context.fillRect(0, 0, currentCanvas.width, currentCanvas.height);
       
-      // Then redraw the old content, scaled if necessary (simple putImageData won't scale)
-      // For simplicity, we'll just put it back at 0,0. A more complex solution would scale.
       context.putImageData(currentImageData, 0, 0); 
 
-      // Re-apply current tool styles
       if (currentTool === 'pen') {
         context.strokeStyle = effectivePenColor;
         context.lineWidth = PEN_WIDTH;
@@ -199,7 +187,7 @@ export default function WhiteboardPage() {
       context.lineCap = 'round';
       context.lineJoin = 'round';
       context.globalCompositeOperation = 'source-over';
-      saveCanvasState(); // Save the resized state
+      saveCanvasState(); 
     });
 
     const parentEl = canvas.parentElement;
@@ -322,7 +310,7 @@ export default function WhiteboardPage() {
 
     context.globalCompositeOperation = 'source-over';
     context.font = '16px Arial'; 
-    context.fillStyle = effectivePenColor; // Use effectivePenColor for text
+    context.fillStyle = effectivePenColor; 
     context.textBaseline = 'top';
     context.fillText(text, x, y);
 
@@ -449,9 +437,8 @@ export default function WhiteboardPage() {
     const context = canvas.getContext('2d');
     if (!context) return;
 
-    const img = new Image();
+    const img = new window.Image(); // Use window.Image to avoid conflict with next/image
     img.onload = () => {
-      // Important: ensure canvas background matches current theme before drawing image
       context.fillStyle = effectiveEraserColor;
       context.fillRect(0, 0, canvas.width, canvas.height);
       context.drawImage(img, 0, 0);
@@ -512,7 +499,7 @@ export default function WhiteboardPage() {
         </DropdownMenu>
         <LanguageSwitcher />
       </div>
-      <div className="flex-grow relative"> {/* Added wrapper for canvas to observe resize */}
+      <div className="flex-grow relative"> 
         <canvas
           ref={canvasRef}
           onMouseDown={startDrawing}
@@ -520,9 +507,9 @@ export default function WhiteboardPage() {
           onMouseUp={stopDrawing}
           onMouseLeave={stopDrawing} 
           onContextMenu={handleContextMenu}
-          className="w-full h-full cursor-crosshair block" // Ensure canvas is block for parent flex to work
+          className="w-full h-full cursor-crosshair block" 
           aria-label={t('whiteboard.canvasLabel')}
-          style={{ backgroundColor: effectiveEraserColor }} // Explicitly set canvas bg for clarity, though fillRect handles it
+          style={{ backgroundColor: effectiveEraserColor }} 
         />
       </div>
       {showTextInput && (
@@ -539,8 +526,8 @@ export default function WhiteboardPage() {
             top: `${textInputPosition.y}px`,
             minWidth: '100px',
             maxWidth: '300px',
-            color: effectivePenColor, // Match text input color to pen color
-            backgroundColor: effectiveEraserColor, // Match input background to canvas background
+            color: effectivePenColor, 
+            backgroundColor: effectiveEraserColor, 
           }}
           placeholder={t('whiteboard.textInputPlaceholder')}
         />
@@ -651,14 +638,22 @@ export default function WhiteboardPage() {
           </DialogHeader>
           {drafts.length > 0 && (
             <ScrollArea className="h-[300px] w-full rounded-md border p-4">
-              <div className="space-y-2">
+              <div className="space-y-4">
                 {drafts.map((draft) => (
-                  <div key={draft.id} className="flex items-center justify-between p-2 rounded-md hover:bg-accent">
-                    <div>
-                      <p className="font-medium">{draft.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(draft.createdAt).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' })}
-                      </p>
+                  <div key={draft.id} className="flex items-center justify-between p-2 rounded-md hover:bg-accent space-x-3">
+                    <div className="flex items-center space-x-3 flex-grow">
+                      <img
+                        src={draft.dataUrl}
+                        alt={t('whiteboard.draftThumbnailAlt', { draftName: draft.name })}
+                        className="w-20 h-16 rounded-md border object-contain bg-white"
+                        data-ai-hint="drawing preview"
+                      />
+                      <div>
+                        <p className="font-medium">{draft.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(draft.createdAt).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' })}
+                        </p>
+                      </div>
                     </div>
                     <Button variant="outline" size="sm" onClick={() => handleLoadSpecificDraft(draft.id)}>
                       {t('whiteboard.loadDraftButton')}

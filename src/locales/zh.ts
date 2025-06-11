@@ -40,6 +40,7 @@ export default {
     noDraftsMessage: '暂无已存草稿。',
     draftNamePrefix: '草稿',
     closeDialogButton: '关闭',
+    draftThumbnailAlt: '草稿 {draftName} 的缩略图',
   },
   export: {
     title: '导出笔记',
