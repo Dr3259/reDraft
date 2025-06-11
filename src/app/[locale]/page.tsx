@@ -259,8 +259,27 @@ export default function WhiteboardPage() {
     const context = canvas?.getContext('2d');
     if (!canvas || !context) return;
 
+    // 1. Visually clear the canvas
     context.fillStyle = ERASER_COLOR;
     context.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 2. Explicitly re-apply current tool's styles to the context
+    // This ensures the context is immediately ready for the current tool
+    // and for saving its state correctly.
+    if (currentTool === 'pen') {
+      context.strokeStyle = PEN_COLOR;
+      context.lineWidth = PEN_WIDTH;
+      context.globalCompositeOperation = 'source-over';
+    } else { // Eraser
+      context.strokeStyle = ERASER_COLOR;
+      context.lineWidth = ERASER_WIDTH;
+      context.globalCompositeOperation = 'source-over';
+    }
+    context.lineCap = 'round';
+    context.lineJoin = 'round';
+    // Do not call beginPath() here, that's for active drawing strokes.
+
+    // 3. Save this cleared state (which now has a correctly styled context)
     saveCanvasState(); 
   };
 
@@ -371,3 +390,4 @@ export default function WhiteboardPage() {
     </div>
   );
 }
+
