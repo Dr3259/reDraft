@@ -2,8 +2,7 @@
 import type { Metadata } from 'next';
 import '../globals.css';
 import { getI18n } from '@/locales/server';
-import { I18nProviderClient } from '@/locales/client';
-import { Toaster } from "@/components/ui/toaster";
+import ClientIntlWrapper from '@/components/client-intl-wrapper';
 
 export async function generateMetadata({ params: { locale } }: { params: { locale: string } }): Promise<Metadata> {
   const t = await getI18n(locale);
@@ -11,18 +10,6 @@ export async function generateMetadata({ params: { locale } }: { params: { local
     title: t('appTitle'),
     description: t('appDescription'),
   };
-}
-
-function ClientIntlWrapper({ children, locale }: { children: React.ReactNode, locale: string }) {
-  "use client";
-  return (
-    <I18nProviderClient locale={locale}>
-      <>
-        {children}
-        <Toaster />
-      </>
-    </I18nProviderClient>
-  );
 }
 
 export default function LocaleLayout({
