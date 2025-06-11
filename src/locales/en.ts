@@ -16,16 +16,23 @@ export default {
     clearCanvasTooltip: 'Clear Canvas',
     undoTooltip: 'Undo',
     eraserTooltip: 'Eraser',
-    saveDraftTooltip: 'Save Draft to Browser',
+    saveDraftTooltip: 'Save New Draft', // Updated
     downloadTooltip: 'Download as PNG',
+    manageDraftsTooltip: 'Manage Saved Drafts', // New
     draftSavedTitle: 'Draft Saved',
-    draftSavedDescription: 'Your drawing has been saved in this browser.',
+    draftSavedDescription: "Draft '{draftName}' has been saved in this browser.", // Updated
     draftLoadedTitle: 'Draft Loaded',
-    draftLoadedDescription: 'Your previous drawing has been loaded.',
+    draftLoadedDescription: "Draft '{draftName}' has been loaded.", // Updated
     draftSaveErrorTitle: 'Save Error',
     draftSaveErrorDescription: 'Could not save draft to browser storage.',
     draftLoadErrorTitle: 'Load Error',
-    draftLoadErrorDescription: 'Could not load draft. Starting fresh.',
+    draftLoadErrorSpecificDescription: 'Could not load the selected draft. It might be corrupted.', // Updated
+    draftsDialogTitle: 'Saved Drafts', // New
+    draftsDialogDescription: 'Select a draft to load it onto the canvas.', // New
+    loadDraftButton: 'Load', // New
+    noDraftsMessage: 'No drafts saved yet.', // New
+    draftNamePrefix: 'Draft', // New
+    closeDialogButton: 'Close', // New
   },
   export: {
     title: 'Export Note',
