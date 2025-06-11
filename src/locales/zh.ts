@@ -13,6 +13,9 @@ export default {
   whiteboard: {
     textInputPlaceholder: '在此输入...',
     canvasLabel: '白板绘画区域',
+    clearCanvasTooltip: '清空画布',
+    undoTooltip: '撤销',
+    eraserTooltip: '橡皮擦',
   },
   export: {
     title: '导出笔记',
@@ -44,3 +47,5 @@ export default {
     copyright: '© {year} 笔记画布. 版权所有.',
   }
 } as const;
+
+    

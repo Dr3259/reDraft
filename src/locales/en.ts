@@ -13,6 +13,9 @@ export default {
   whiteboard: {
     textInputPlaceholder: 'Type here...',
     canvasLabel: 'Whiteboard drawing area',
+    clearCanvasTooltip: 'Clear Canvas',
+    undoTooltip: 'Undo',
+    eraserTooltip: 'Eraser',
   },
   export: {
     title: 'Export Note',
@@ -44,3 +47,5 @@ export default {
     copyright: '© {year} NoteCanvas. All rights reserved.',
   }
 } as const;
+
+    
