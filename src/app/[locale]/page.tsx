@@ -2,126 +2,183 @@
 "use client";
 
 import * as React from 'react';
-import {
-  BoldIcon, ItalicIcon, Heading1Icon, Heading2Icon, Heading3Icon,
-  ListIcon, ListOrderedIcon
-} from 'lucide-react';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { useAutosave } from '@/hooks/useAutosave';
-import { ToolbarButton } from '@/components/editor/ToolbarButton';
+import { useRef, useEffect, useState } from 'react';
+import { Input } from '@/components/ui/input';
 import { useI18n } from '@/locales/client';
-import { LanguageSwitcher } from '@/components/language-switcher';
 
-type FormatType = 'bold' | 'italic' | 'h1' | 'h2' | 'h3' | 'ul' | 'ol';
-
-export default function NoteCanvasPage() {
+export default function WhiteboardPage() {
   const t = useI18n();
-  const [noteContent, setNoteContent] = useAutosave('noteCanvasContent', '');
-  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
-  const [cursorPos, setCursorPos] = React.useState<{start: number, end: number} | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [lastPosition, setLastPosition] = useState<{ x: number; y: number } | null>(null);
 
-  const handleFormat = (type: FormatType) => {
-    if (!textareaRef.current) return;
-    const textarea = textareaRef.current;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const currentText = textarea.value;
-  
-    let prefix = "";
-    let suffix = "";
-    let newCursorStart = start;
-    let newCursorEnd = end;
-    let newText = currentText;
-  
-    switch (type) {
-      case 'bold': prefix = '**'; suffix = '**'; break;
-      case 'italic': prefix = '*'; suffix = '*'; break;
-      case 'h1': prefix = '# '; break;
-      case 'h2': prefix = '## '; break;
-      case 'h3': prefix = '### '; break;
-      case 'ul': prefix = '- '; break;
-      case 'ol': prefix = '1. '; break;
-    }
-  
-    if ((type === 'bold' || type === 'italic') && start !== end) {
-      newText = `${currentText.substring(0, start)}${prefix}${currentText.substring(start, end)}${suffix}${currentText.substring(end)}`;
-      newCursorStart = start + prefix.length;
-      newCursorEnd = end + prefix.length;
-    } else if (type === 'bold' || type === 'italic') {
-      newText = `${currentText.substring(0, start)}${prefix}${suffix}${currentText.substring(end)}`;
-      newCursorStart = start + prefix.length;
-      newCursorEnd = newCursorStart;
-    } else {
-      let lineStart = start;
-      while (lineStart > 0 && currentText[lineStart - 1] !== '\\n') {
-        lineStart--;
+  const [showTextInput, setShowTextInput] = useState(false);
+  const [textInputValue, setTextInputValue] = useState('');
+  const [textInputPosition, setTextInputPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const textInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const context = canvas.getContext('2d');
+    if (!context) return;
+
+    const resizeCanvas = () => {
+      const parent = canvas.parentElement;
+      if (parent) {
+        // Save current drawing
+        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+        canvas.width = parent.clientWidth;
+        canvas.height = parent.clientHeight;
+        
+        // Restore drawing
+        context.putImageData(imageData, 0, 0);
+
+        // Reset styles as they might be cleared
+        context.strokeStyle = 'black';
+        context.lineWidth = 2;
+        context.lineCap = 'round';
+        context.lineJoin = 'round';
       }
-      const insertNewLine = (lineStart !== start || currentText.substring(lineStart, start).trim() !== "") && currentText[lineStart] !== '\\n' && lineStart !==0 ;
-      const prefixWithPossibleNewline = insertNewLine ? `\\n${prefix}` : prefix;
-
-      const textBeforeLine = currentText.substring(0, lineStart);
-      const textAfterLineStart = currentText.substring(lineStart);
-      
-      newText = `${textBeforeLine}${prefixWithPossibleNewline}${textAfterLineStart}`;
-      newCursorStart = lineStart + prefixWithPossibleNewline.length;
-      newCursorEnd = newCursorStart;
+    };
+    
+    // Initial setup
+    const parent = canvas.parentElement;
+    if (parent) {
+        canvas.width = parent.clientWidth;
+        canvas.height = parent.clientHeight;
+        context.fillStyle = 'white'; // Ensure background is white initially
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.strokeStyle = 'black';
+        context.lineWidth = 2;
+        context.lineCap = 'round';
+        context.lineJoin = 'round';
     }
-  
-    setNoteContent(newText);
-    setCursorPos({ start: newCursorStart, end: newCursorEnd });
+
+    window.addEventListener('resize', resizeCanvas);
+    return () => window.removeEventListener('resize', resizeCanvas);
+  }, []);
+
+  const getMousePosition = (event: React.MouseEvent<HTMLCanvasElement>): { x: number; y: number } => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top
+    };
   };
 
-  React.useEffect(() => {
-    if (textareaRef.current && cursorPos) {
-      textareaRef.current.focus();
-      textareaRef.current.setSelectionRange(cursorPos.start, cursorPos.end);
-      setCursorPos(null); 
-    }
-  }, [noteContent, cursorPos]);
+  const startDrawing = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    if (event.button !== 0) return; // Only draw on left click
+    const { x, y } = getMousePosition(event);
+    setIsDrawing(true);
+    setLastPosition({ x, y });
+  };
 
-  const formattingTools = [
-    { type: 'bold' as FormatType, icon: <BoldIcon className="h-4 w-4" />, label: t('editor.bold') },
-    { type: 'italic' as FormatType, icon: <ItalicIcon className="h-4 w-4" />, label: t('editor.italic') },
-    { type: 'h1' as FormatType, icon: <Heading1Icon className="h-4 w-4" />, label: t('editor.h1') },
-    { type: 'h2' as FormatType, icon: <Heading2Icon className="h-4 w-4" />, label: t('editor.h2') },
-    { type: 'h3' as FormatType, icon: <Heading3Icon className="h-4 w-4" />, label: t('editor.h3') },
-    { type: 'ul' as FormatType, icon: <ListIcon className="h-4 w-4" />, label: t('editor.ul') },
-    { type: 'ol' as FormatType, icon: <ListOrderedIcon className="h-4 w-4" />, label: t('editor.ol') },
-  ];
+  const draw = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawing || !lastPosition) return;
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext('2d');
+    if (!context) return;
+
+    const { x, y } = getMousePosition(event);
+    context.beginPath();
+    context.moveTo(lastPosition.x, lastPosition.y);
+    context.lineTo(x, y);
+    context.stroke();
+    setLastPosition({ x, y });
+  };
+
+  const stopDrawing = () => {
+    setIsDrawing(false);
+    setLastPosition(null);
+  };
+
+  const handleContextMenu = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    event.preventDefault();
+    if (isDrawing) stopDrawing(); 
+
+    const { x, y } = getMousePosition(event);
+    setTextInputPosition({ x, y });
+    setShowTextInput(true);
+    setTextInputValue(''); 
+  };
+
+  useEffect(() => {
+    if (showTextInput && textInputRef.current) {
+      textInputRef.current.focus();
+    }
+  }, [showTextInput]);
+
+  const handleTextInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setTextInputValue(event.target.value);
+  };
+
+  const applyTextToCanvas = () => {
+    if (textInputValue.trim() !== '') {
+      drawTextOnCanvas(textInputValue, textInputPosition.x, textInputPosition.y);
+    }
+    setShowTextInput(false);
+    setTextInputValue('');
+  }
+
+  const handleTextInputBlur = () => {
+    applyTextToCanvas();
+  };
+
+  const handleTextInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      event.preventDefault(); 
+      applyTextToCanvas();
+    } else if (event.key === 'Escape') {
+      setShowTextInput(false);
+      setTextInputValue('');
+    }
+  };
+
+  const drawTextOnCanvas = (text: string, x: number, y: number) => {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext('2d');
+    if (!context) return;
+
+    context.font = '16px Arial'; 
+    context.fillStyle = 'black';
+    context.textBaseline = 'top';
+    context.fillText(text, x, y);
+  };
 
   return (
-    <div className="flex flex-col h-screen font-body">
-      <main className="flex-grow flex flex-col">
-        <Card className="shadow-lg flex-grow flex flex-col rounded-none border-0">
-          <CardHeader className="bg-muted/30 p-3 border-b rounded-none">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 flex-wrap">
-                {formattingTools.map(tool => (
-                  <ToolbarButton
-                    key={tool.type}
-                    tooltipLabel={tool.label}
-                    icon={tool.icon}
-                    onClick={() => handleFormat(tool.type)}
-                    aria-label={tool.label}
-                  />
-                ))}
-              </div>
-              <LanguageSwitcher />
-            </div>
-          </CardHeader>
-          <CardContent className="p-0 flex-grow">
-            <Textarea
-              ref={textareaRef}
-              value={noteContent}
-              onChange={(e) => setNoteContent(e.target.value)}
-              placeholder={t('editor.placeholder')}
-              className="w-full h-full rounded-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-4 resize-none text-base"
-              aria-label={t('editor.noteEditorLabel')}
-            />
-          </CardContent>
-        </Card>
-      </main>
+    <div className="w-screen h-screen relative bg-white overflow-hidden">
+      <canvas
+        ref={canvasRef}
+        onMouseDown={startDrawing}
+        onMouseMove={draw}
+        onMouseUp={stopDrawing}
+        onMouseLeave={stopDrawing} 
+        onContextMenu={handleContextMenu}
+        className="w-full h-full cursor-crosshair"
+        aria-label={t('whiteboard.canvasLabel')}
+      />
+      {showTextInput && (
+        <Input
+          ref={textInputRef}
+          type="text"
+          value={textInputValue}
+          onChange={handleTextInputChange}
+          onBlur={handleTextInputBlur}
+          onKeyDown={handleTextInputKeyDown}
+          className="absolute p-1 border border-gray-400 bg-white shadow-md text-sm z-10"
+          style={{
+            left: `${textInputPosition.x}px`,
+            top: `${textInputPosition.y}px`,
+            minWidth: '100px',
+            maxWidth: '300px',
+          }}
+          placeholder={t('whiteboard.textInputPlaceholder')}
+        />
+      )}
     </div>
   );
 }

@@ -1,25 +1,18 @@
 
 export default {
-  appTitle: '笔记画布',
-  appDescription: '一个具有 AI 辅助功能的浏览器笔记应用。',
+  appTitle: '笔记画布 白板',
+  appDescription: '一个具有绘画和文本功能的浏览器白板应用。',
   header: {
-    title: '笔记画布',
+    title: '笔记画布 白板',
   },
   languageSwitcher: {
     english: '英文',
     chinese: '中文',
     changeLanguage: '切换语言',
   },
-  editor: {
-    placeholder: '开始你的杰作...',
-    bold: '粗体',
-    italic: '斜体',
-    h1: '标题 1',
-    h2: '标题 2',
-    h3: '标题 3',
-    ul: '无序列表',
-    ol: '有序列表',
-    noteEditorLabel: '笔记内容编辑器',
+  whiteboard: {
+    textInputPlaceholder: '在此输入...',
+    canvasLabel: '白板绘画区域',
   },
   export: {
     title: '导出笔记',

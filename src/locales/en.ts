@@ -1,25 +1,18 @@
 
 export default {
-  appTitle: 'NoteCanvas',
-  appDescription: 'A browser-based scratchpad with AI-powered assistance.',
+  appTitle: 'NoteCanvas Whiteboard',
+  appDescription: 'A browser-based whiteboard with drawing and text capabilities.',
   header: {
-    title: 'NoteCanvas',
+    title: 'NoteCanvas Whiteboard',
   },
   languageSwitcher: {
     english: 'English',
     chinese: '中文',
     changeLanguage: 'Change language',
   },
-  editor: {
-    placeholder: 'Start your masterpiece...',
-    bold: 'Bold',
-    italic: 'Italic',
-    h1: 'Heading 1',
-    h2: 'Heading 2',
-    h3: 'Heading 3',
-    ul: 'Unordered List',
-    ol: 'Ordered List',
-    noteEditorLabel: 'Note content editor',
+  whiteboard: {
+    textInputPlaceholder: 'Type here...',
+    canvasLabel: 'Whiteboard drawing area',
   },
   export: {
     title: 'Export Note',
