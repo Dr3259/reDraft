@@ -52,6 +52,7 @@ export default function WhiteboardPage() {
     const context = canvas?.getContext('2d');
     if (!context || !canvas) return;
 
+    // General style setup, startDrawing will be more specific for active drawing
     if (currentTool === 'pen') {
       context.strokeStyle = PEN_COLOR;
       context.lineWidth = PEN_WIDTH;
@@ -59,7 +60,7 @@ export default function WhiteboardPage() {
     } else { // Eraser
       context.strokeStyle = ERASER_COLOR;
       context.lineWidth = ERASER_WIDTH;
-      context.globalCompositeOperation = 'source-over'; // Draw with background color
+      context.globalCompositeOperation = 'source-over';
     }
     context.lineCap = 'round';
     context.lineJoin = 'round';
@@ -69,7 +70,7 @@ export default function WhiteboardPage() {
       const initialImageData = context.getImageData(0, 0, canvas.width, canvas.height);
       setHistory([initialImageData]);
     }
-  }, [currentTool, canvasRef, history.length]); // history.length to ensure initial save happens
+  }, [currentTool, canvasRef, history.length]);
 
   // Effect for handling canvas resize
   useEffect(() => {
@@ -84,7 +85,6 @@ export default function WhiteboardPage() {
 
       const parentEl = currentCanvas.parentElement;
       if (parentEl) {
-        // Preserve current drawing during resize
         const imageData = context.getImageData(0, 0, currentCanvas.width, currentCanvas.height);
         
         currentCanvas.width = parentEl.clientWidth;
@@ -92,11 +92,10 @@ export default function WhiteboardPage() {
         
         context.putImageData(imageData, 0, 0);
 
-        // Re-apply current tool's styles as context properties might be reset
         if (currentTool === 'pen') {
             context.strokeStyle = PEN_COLOR;
             context.lineWidth = PEN_WIDTH;
-        } else { // Eraser
+        } else {
             context.strokeStyle = ERASER_COLOR;
             context.lineWidth = ERASER_WIDTH;
         }
@@ -147,16 +146,21 @@ export default function WhiteboardPage() {
 
     const context = canvasRef.current?.getContext('2d');
     if (context) {
-      // Apply current tool styles
+      // Apply ALL current tool styles explicitly
       if (currentTool === 'pen') {
         context.strokeStyle = PEN_COLOR;
         context.lineWidth = PEN_WIDTH;
-      } else {
+        context.globalCompositeOperation = 'source-over';
+      } else { // Eraser
         context.strokeStyle = ERASER_COLOR;
         context.lineWidth = ERASER_WIDTH;
+        context.globalCompositeOperation = 'source-over';
       }
-      context.beginPath(); // Start a new path
-      context.moveTo(x, y); // Move to the starting point
+      context.lineCap = 'round';
+      context.lineJoin = 'round';
+      
+      context.beginPath();
+      context.moveTo(x, y);
     }
   };
 
@@ -167,8 +171,6 @@ export default function WhiteboardPage() {
     if (!context) return;
 
     const { x, y } = getMousePosition(event);
-    // context.beginPath(); // Not needed here, path is continuous from startDrawing or previous draw
-    // context.moveTo(lastPosition.x, lastPosition.y); // Not needed if path is continuous
     context.lineTo(x, y);
     context.stroke();
     setLastPosition({ x, y });
@@ -178,7 +180,7 @@ export default function WhiteboardPage() {
     if (!isDrawing) return;
     const context = canvasRef.current?.getContext('2d');
     if(context) {
-        context.closePath(); // Close the path for the current stroke
+        context.closePath();
     }
     setIsDrawing(false);
     setLastPosition(null);
@@ -210,7 +212,6 @@ export default function WhiteboardPage() {
     const context = canvas?.getContext('2d');
     if (!context) return;
 
-    // Ensure text is drawn with pen settings, not eraser settings
     const previousStrokeStyle = context.strokeStyle;
     const previousLineWidth = context.lineWidth;
     const previousFont = context.font;
@@ -219,11 +220,10 @@ export default function WhiteboardPage() {
 
     context.globalCompositeOperation = 'source-over';
     context.font = '16px Arial'; 
-    context.fillStyle = PEN_COLOR; // Text color
+    context.fillStyle = PEN_COLOR;
     context.textBaseline = 'top';
     context.fillText(text, x, y);
 
-    // Restore previous context settings if they were for eraser or different
     context.strokeStyle = previousStrokeStyle;
     context.lineWidth = previousLineWidth;
     context.font = previousFont;
@@ -371,5 +371,3 @@ export default function WhiteboardPage() {
     </div>
   );
 }
-
-    
