@@ -9,15 +9,18 @@ import { useI18n } from '@/locales/client';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { Eraser, Trash2, Undo2, Save, Download } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useToast } from "@/hooks/use-toast";
 
 const ERASER_WIDTH = 20;
 const PEN_WIDTH = 2;
 const PEN_COLOR = 'black';
 const ERASER_COLOR = 'white'; // Must match canvas background
 const MAX_HISTORY_STEPS = 30;
+const LOCAL_STORAGE_DRAFT_KEY = 'whiteboardDraft_v1';
 
 export default function WhiteboardPage() {
   const t = useI18n();
+  const { toast } = useToast();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [lastPosition, setLastPosition] = useState<{ x: number; y: number } | null>(null);
@@ -30,7 +33,7 @@ export default function WhiteboardPage() {
   const [history, setHistory] = useState<ImageData[]>([]);
   const [currentTool, setCurrentTool] = useState<'pen' | 'eraser'>('pen');
 
-  // Effect for initial canvas setup (size, background)
+  // Effect for initial canvas setup, draft loading, and initial history
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -38,39 +41,69 @@ export default function WhiteboardPage() {
     if (!context) return;
 
     const parent = canvas.parentElement;
-    if (parent) {
-      canvas.width = parent.clientWidth;
-      canvas.height = parent.clientHeight;
+    if (!parent) return;
+
+    canvas.width = parent.clientWidth;
+    canvas.height = parent.clientHeight;
+
+    // Apply default drawing styles based on the initial tool (pen)
+    context.strokeStyle = PEN_COLOR;
+    context.lineWidth = PEN_WIDTH;
+    context.lineCap = 'round';
+    context.lineJoin = 'round';
+    context.globalCompositeOperation = 'source-over';
+
+
+    const savedDraftDataUrl = localStorage.getItem(LOCAL_STORAGE_DRAFT_KEY);
+    if (savedDraftDataUrl) {
+      const img = new Image();
+      img.onload = () => {
+        context.clearRect(0, 0, canvas.width, canvas.height); // Clear before drawing loaded draft
+        context.drawImage(img, 0, 0);
+        const loadedImageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        setHistory([loadedImageData]); // Set this as the first history state
+        toast({ title: t('whiteboard.draftLoadedTitle'), description: t('whiteboard.draftLoadedDescription') });
+      };
+      img.onerror = () => {
+        context.fillStyle = ERASER_COLOR;
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        const initialImageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        setHistory([initialImageData]);
+        localStorage.removeItem(LOCAL_STORAGE_DRAFT_KEY);
+        toast({ variant: "destructive", title: t('whiteboard.draftLoadErrorTitle'), description: t('whiteboard.draftLoadErrorDescription') });
+      };
+      img.src = savedDraftDataUrl;
+    } else {
+      // No draft, setup blank canvas and save its state
       context.fillStyle = ERASER_COLOR; // Background color
       context.fillRect(0, 0, canvas.width, canvas.height);
+      if (canvas.width > 0 && canvas.height > 0 && history.length === 0) { // Ensure canvas is rendered and history is empty
+          const initialImageData = context.getImageData(0, 0, canvas.width, canvas.height);
+          setHistory([initialImageData]); // Save initial blank state
+      }
     }
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t]); // `t` is needed for toast messages.
 
-  // Effect to synchronize drawing context with the current tool and save initial state
+
+  // Effect to synchronize drawing context with the current tool (styles only)
   useEffect(() => {
     const canvas = canvasRef.current;
     const context = canvas?.getContext('2d');
     if (!context || !canvas) return;
 
-    // General style setup, startDrawing will be more specific for active drawing
     if (currentTool === 'pen') {
       context.strokeStyle = PEN_COLOR;
       context.lineWidth = PEN_WIDTH;
-      context.globalCompositeOperation = 'source-over';
     } else { // Eraser
       context.strokeStyle = ERASER_COLOR;
       context.lineWidth = ERASER_WIDTH;
-      context.globalCompositeOperation = 'source-over';
     }
     context.lineCap = 'round';
     context.lineJoin = 'round';
+    context.globalCompositeOperation = 'source-over';
+  }, [currentTool]);
 
-    // Save initial state once canvas is ready and styled
-    if (history.length === 0 && canvas.width > 0 && canvas.height > 0) {
-      const initialImageData = context.getImageData(0, 0, canvas.width, canvas.height);
-      setHistory([initialImageData]);
-    }
-  }, [currentTool, canvasRef, history.length]);
 
   // Effect for handling canvas resize
   useEffect(() => {
@@ -90,8 +123,10 @@ export default function WhiteboardPage() {
         currentCanvas.width = parentEl.clientWidth;
         currentCanvas.height = parentEl.clientHeight;
         
+        // Restore pixels
         context.putImageData(imageData, 0, 0);
 
+        // Re-apply styles for the current tool because context is reset on resize
         if (currentTool === 'pen') {
             context.strokeStyle = PEN_COLOR;
             context.lineWidth = PEN_WIDTH;
@@ -146,18 +181,16 @@ export default function WhiteboardPage() {
 
     const context = canvasRef.current?.getContext('2d');
     if (context) {
-      // Apply ALL current tool styles explicitly
       if (currentTool === 'pen') {
         context.strokeStyle = PEN_COLOR;
         context.lineWidth = PEN_WIDTH;
-        context.globalCompositeOperation = 'source-over';
       } else { // Eraser
         context.strokeStyle = ERASER_COLOR;
         context.lineWidth = ERASER_WIDTH;
-        context.globalCompositeOperation = 'source-over';
       }
       context.lineCap = 'round';
       context.lineJoin = 'round';
+      context.globalCompositeOperation = 'source-over';
       
       context.beginPath();
       context.moveTo(x, y);
@@ -259,24 +292,20 @@ export default function WhiteboardPage() {
     const context = canvas?.getContext('2d');
     if (!canvas || !context) return;
 
-    // 1. Visually clear the canvas
     context.fillStyle = ERASER_COLOR;
     context.fillRect(0, 0, canvas.width, canvas.height);
 
-    // 2. Explicitly re-apply current tool's styles to the context
     if (currentTool === 'pen') {
       context.strokeStyle = PEN_COLOR;
       context.lineWidth = PEN_WIDTH;
-      context.globalCompositeOperation = 'source-over';
-    } else { // Eraser
+    } else { 
       context.strokeStyle = ERASER_COLOR;
       context.lineWidth = ERASER_WIDTH;
-      context.globalCompositeOperation = 'source-over';
     }
     context.lineCap = 'round';
     context.lineJoin = 'round';
+    context.globalCompositeOperation = 'source-over';
 
-    // 3. Save this cleared state
     saveCanvasState(); 
   };
 
@@ -299,19 +328,27 @@ export default function WhiteboardPage() {
     setCurrentTool(prevTool => (prevTool === 'pen' ? 'eraser' : 'pen'));
   };
 
-  const handleSaveCanvas = () => {
+  const handleSaveCanvasDraft = () => { // Renamed and new behavior
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const dataUrl = canvas.toDataURL('image/png');
-    const link = document.createElement('a');
-    link.download = 'whiteboard.png';
-    link.href = dataUrl;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      const dataUrl = canvas.toDataURL('image/png');
+      localStorage.setItem(LOCAL_STORAGE_DRAFT_KEY, dataUrl);
+      toast({
+        title: t('whiteboard.draftSavedTitle'),
+        description: t('whiteboard.draftSavedDescription'),
+      });
+    } catch (error) {
+      console.error("Error saving draft to localStorage:", error);
+      toast({
+        variant: "destructive",
+        title: t('whiteboard.draftSaveErrorTitle'),
+        description: t('whiteboard.draftSaveErrorDescription'),
+      });
+    }
   };
 
-  const handleSaveCanvasAs = () => {
+  const handleDownloadCanvas = () => { // Renamed and new behavior
     const canvas = canvasRef.current;
     if (!canvas) return;
     const dataUrl = canvas.toDataURL('image/png');
@@ -322,6 +359,10 @@ export default function WhiteboardPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    toast({
+      title: t('toast.downloadedTitle'),
+      description: t('toast.downloadedDescription', { filename: link.download }),
+    });
   };
   
   const undoDisabled = history.length <= 1;
@@ -366,14 +407,14 @@ export default function WhiteboardPage() {
               <Button 
                 variant="outline" 
                 size="icon" 
-                onClick={handleSaveCanvas}
-                aria-label={t('whiteboard.saveTooltip')}
+                onClick={handleSaveCanvasDraft}
+                aria-label={t('whiteboard.saveDraftTooltip')}
               >
                 <Save className="h-5 w-5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>{t('whiteboard.saveTooltip')}</p>
+              <p>{t('whiteboard.saveDraftTooltip')}</p>
             </TooltipContent>
           </Tooltip>
           <Tooltip>
@@ -381,14 +422,14 @@ export default function WhiteboardPage() {
               <Button 
                 variant="outline" 
                 size="icon" 
-                onClick={handleSaveCanvasAs}
-                aria-label={t('whiteboard.saveAsTooltip')}
+                onClick={handleDownloadCanvas}
+                aria-label={t('whiteboard.downloadTooltip')}
               >
                 <Download className="h-5 w-5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>{t('whiteboard.saveAsTooltip')}</p>
+              <p>{t('whiteboard.downloadTooltip')}</p>
             </TooltipContent>
           </Tooltip>
           <Tooltip>
@@ -442,3 +483,4 @@ export default function WhiteboardPage() {
     </div>
   );
 }
+
