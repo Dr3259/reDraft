@@ -57,7 +57,7 @@ interface SavedDraft {
 export default function WhiteboardPage() {
   const t = useI18n();
   const locale = useCurrentLocale();
-  const { toast } = useToast();
+  const { toast, dismiss: dismissToast } = useToast();
 
   const mainContainerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -99,10 +99,33 @@ export default function WhiteboardPage() {
           const newPenColor = `hsl(${computedStyle.getPropertyValue('--canvas-pen-hsl').trim()})`;
           setEffectiveEraserColor(newEraserColor);
           setEffectivePenColor(newPenColor);
+
+          const canvas = canvasRef.current;
+          const context = canvas?.getContext('2d');
+          if (!canvas || !context) return;
+          
+          context.fillStyle = newEraserColor;
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          
+          if (currentTool === 'pen') {
+            context.strokeStyle = newPenColor;
+            context.lineWidth = PEN_WIDTH;
+          } else { 
+            context.strokeStyle = newEraserColor; 
+            context.lineWidth = ERASER_WIDTH;
+          }
+          context.lineCap = 'round';
+          context.lineJoin = 'round';
+          context.globalCompositeOperation = 'source-over';
+          
+          if (canvas.width > 0 && canvas.height > 0) {
+            const initialImageData = context.getImageData(0, 0, canvas.width, canvas.height);
+            setHistory([initialImageData]);
+          }
         }
       }, 0);
     }
-  }, [currentTheme]);
+  }, [currentTheme, currentTool]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -175,19 +198,49 @@ export default function WhiteboardPage() {
       context.fillStyle = effectiveEraserColor;
       context.fillRect(0, 0, currentCanvas.width, currentCanvas.height);
       
-      context.putImageData(currentImageData, 0, 0); 
+      // Try to redraw the existing content onto the resized canvas
+      // This might not be perfect if aspect ratio changes, but it's better than losing content
+      const tempImg = new window.Image();
+      tempImg.onload = () => {
+        context.drawImage(tempImg, 0, 0);
 
-      if (currentTool === 'pen') {
-        context.strokeStyle = effectivePenColor;
-        context.lineWidth = PEN_WIDTH;
-      } else {
-        context.strokeStyle = effectiveEraserColor;
-        context.lineWidth = ERASER_WIDTH;
+         if (currentTool === 'pen') {
+          context.strokeStyle = effectivePenColor;
+          context.lineWidth = PEN_WIDTH;
+        } else {
+          context.strokeStyle = effectiveEraserColor;
+          context.lineWidth = ERASER_WIDTH;
+        }
+        context.lineCap = 'round';
+        context.lineJoin = 'round';
+        context.globalCompositeOperation = 'source-over';
+        saveCanvasState(); // Save the state after redraw and style application
       }
-      context.lineCap = 'round';
-      context.lineJoin = 'round';
-      context.globalCompositeOperation = 'source-over';
-      saveCanvasState(); 
+      // To create the temp image, we need the ImageData to a DataURL
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = currentImageData.width;
+      tempCanvas.height = currentImageData.height;
+      const tempCtx = tempCanvas.getContext('2d');
+      if (tempCtx) {
+        tempCtx.putImageData(currentImageData, 0, 0);
+        tempImg.src = tempCanvas.toDataURL();
+      } else {
+        // Fallback if temp canvas creation fails: just put the old data if sizes match, or clear.
+        if (currentCanvas.width === currentImageData.width && currentCanvas.height === currentImageData.height) {
+           context.putImageData(currentImageData, 0, 0);
+        }
+         if (currentTool === 'pen') {
+          context.strokeStyle = effectivePenColor;
+          context.lineWidth = PEN_WIDTH;
+        } else {
+          context.strokeStyle = effectiveEraserColor;
+          context.lineWidth = ERASER_WIDTH;
+        }
+        context.lineCap = 'round';
+        context.lineJoin = 'round';
+        context.globalCompositeOperation = 'source-over';
+        saveCanvasState();
+      }
     });
 
     const parentEl = canvas.parentElement;
@@ -199,6 +252,7 @@ export default function WhiteboardPage() {
         resizeObserver.unobserve(parentEl);
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTool, effectiveEraserColor, effectivePenColor]);
 
 
@@ -415,10 +469,13 @@ export default function WhiteboardPage() {
       const updatedDrafts = [newDraft, ...drafts].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       localStorage.setItem(LOCAL_STORAGE_DRAFTS_KEY, JSON.stringify(updatedDrafts));
       setDrafts(updatedDrafts);
-      toast({
+      const { id: toastId } = toast({
         title: t('whiteboard.draftSavedTitle'),
         description: t('whiteboard.draftSavedDescription', { draftName: newDraft.name }),
       });
+      setTimeout(() => {
+        dismissToast(toastId);
+      }, 2000);
     } catch (error) {
       console.error("Error saving draft to localStorage:", error);
       toast({
@@ -437,14 +494,24 @@ export default function WhiteboardPage() {
     const context = canvas.getContext('2d');
     if (!context) return;
 
-    const img = new window.Image(); // Use window.Image to avoid conflict with next/image
+    const img = new window.Image(); 
     img.onload = () => {
       context.fillStyle = effectiveEraserColor;
       context.fillRect(0, 0, canvas.width, canvas.height);
-      context.drawImage(img, 0, 0);
+      context.drawImage(img, 0, 0, canvas.width, canvas.height); // Ensure image draws to fit canvas
       
-      const loadedImageData = context.getImageData(0, 0, canvas.width, canvas.height);
-      setHistory([loadedImageData]); 
+      if (currentTool === 'pen') {
+        context.strokeStyle = effectivePenColor;
+        context.lineWidth = PEN_WIDTH;
+      } else { 
+        context.strokeStyle = effectiveEraserColor; 
+        context.lineWidth = ERASER_WIDTH;
+      }
+      context.lineCap = 'round';
+      context.lineJoin = 'round';
+      context.globalCompositeOperation = 'source-over';
+      
+      saveCanvasState(); // Save this loaded state as the new current state in history
       toast({ title: t('whiteboard.draftLoadedTitle'), description: t('whiteboard.draftLoadedDescription', { draftName: draftToLoad.name }) });
       setIsDraftsDialogOpen(false); 
     };
