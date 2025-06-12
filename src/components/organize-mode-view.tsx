@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useI18n } from '@/locales/client';
 import { useAutosave } from '@/hooks/useAutosave';
 import { SlashCommandPalette, type Command } from '@/components/slash-command-palette';
-import { Heading1, Heading2, Heading3, List, ListOrdered, ListTodo, Download, FileText, FileType, FileJson, Minus } from 'lucide-react'; // Added Download, FileText, Minus
+import { Heading1, Heading2, Heading3, List, ListOrdered, ListTodo, Download, FileText, FileType, FileJson, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -72,7 +72,6 @@ export function OrganizeModeView() {
     }
     
     let actionToInsert = command.action;
-    // Ensure horizontal rule is on its own line, prepended by a newline if not already at the start of a line or after a newline.
     if (command.id === 'hr') {
       if (startOfSlashCommand > 0 && currentValue.charAt(startOfSlashCommand - 1) !== '\n') {
         actionToInsert = '\n' + actionToInsert;
@@ -98,24 +97,37 @@ export function OrganizeModeView() {
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const textarea = textareaRef.current;
-    if (event.key === 'Enter' && textarea) {
-      const cursorPos = textarea.selectionStart;
-      const textBeforeCursor = textarea.value.substring(0, cursorPos);
-      const currentLineStart = textBeforeCursor.lastIndexOf('\n') + 1;
-      const currentLineText = textBeforeCursor.substring(currentLineStart).trim();
+    if (!textarea) return;
 
-      if (currentLineText === '---') {
+    if (event.key === 'Enter') {
+      const cursorPos = textarea.selectionStart;
+      const currentText = textarea.value;
+
+      // Determine the start of the current line (the line where Enter is pressed)
+      const currentLineStart = currentText.lastIndexOf('\n', cursorPos - 1) + 1;
+      // Determine the end of the current line
+      let currentLineEnd = currentText.indexOf('\n', currentLineStart);
+      if (currentLineEnd === -1 || currentLineEnd < cursorPos) { // If no \n after cursor on this line, or \n is before cursor (should not happen with currentLineStart logic)
+        currentLineEnd = currentText.length; // Assume end of document or current line goes to end
+        // More precise: find next \n from currentLineStart
+         let nextNewline = currentText.indexOf('\n', currentLineStart);
+         currentLineEnd = nextNewline === -1 ? currentText.length : nextNewline;
+      }
+
+
+      const lineContent = currentText.substring(currentLineStart, currentLineEnd);
+
+      if (lineContent.trim() === '---') {
         event.preventDefault();
         
-        const value = textarea.value;
-        // Ensure '---' is properly on its own line, then add a newline after it.
-        const textBeforeLine = value.substring(0, currentLineStart);
-        const textAfterCursor = value.substring(cursorPos);
-        
-        const newText = textBeforeLine + '---' + '\n' + textAfterCursor;
+        const textBeforeThisLine = currentText.substring(0, currentLineStart);
+        // textAfterThisLine should include the newline character if currentLineEnd was its position
+        const textAfterThisLine = currentText.substring(currentLineEnd); 
+                                      
+        const newText = textBeforeThisLine + '---' + '\n' + textAfterThisLine;
         setNoteContent(newText);
 
-        const newCursorPos = currentLineStart + 3 + 1; // '---'.length + '\n'.length
+        const newCursorPos = (textBeforeThisLine + '---' + '\n').length;
         setTimeout(() => {
           if (textareaRef.current) {
             textareaRef.current.focus();
