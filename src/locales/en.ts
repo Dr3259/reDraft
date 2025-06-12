@@ -14,6 +14,8 @@ export default {
   },
   organizeMode: {
     placeholder: 'Start typing your notes here... Type / for commands.',
+    switchToPreview: 'Switch to Preview Mode',
+    switchToEdit: 'Switch to Edit Mode',
   },
   languageSwitcher: {
     english: 'English',

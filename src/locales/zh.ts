@@ -14,6 +14,8 @@ export default {
   },
   organizeMode: {
     placeholder: '在此开始输入您的笔记... 输入 / 获取命令。',
+    switchToPreview: '切换到预览模式',
+    switchToEdit: '切换到编辑模式',
   },
   languageSwitcher: {
     english: '英文',
