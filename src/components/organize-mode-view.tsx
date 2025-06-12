@@ -17,6 +17,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { jsPDF } from "jspdf";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const LOCAL_STORAGE_ORGANIZE_NOTE_KEY = 'organizeModeNote_v1';
 
@@ -98,43 +101,33 @@ export function OrganizeModeView() {
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
-
+  
     if (event.key === 'Enter') {
       const cursorPos = textarea.selectionStart;
       const currentText = textarea.value;
-
-      // Determine the start of the current line (the line where Enter is pressed)
-      const currentLineStart = currentText.lastIndexOf('\n', cursorPos - 1) + 1;
-      // Determine the end of the current line
-      let currentLineEnd = currentText.indexOf('\n', currentLineStart);
-      if (currentLineEnd === -1 || currentLineEnd < cursorPos) { // If no \n after cursor on this line, or \n is before cursor (should not happen with currentLineStart logic)
-        currentLineEnd = currentText.length; // Assume end of document or current line goes to end
-        // More precise: find next \n from currentLineStart
-         let nextNewline = currentText.indexOf('\n', currentLineStart);
-         currentLineEnd = nextNewline === -1 ? currentText.length : nextNewline;
+      const lineStart = currentText.lastIndexOf('\n', cursorPos - 1) + 1;
+      let lineEnd = currentText.indexOf('\n', cursorPos);
+      if (lineEnd === -1) {
+        lineEnd = currentText.length;
       }
-
-
-      const lineContent = currentText.substring(currentLineStart, currentLineEnd);
-
-      if (lineContent.trim() === '---') {
+      const currentLine = currentText.substring(lineStart, lineEnd).trim();
+  
+      if (currentLine === '---') {
         event.preventDefault();
+        const textBefore = currentText.substring(0, lineStart);
+        const textAfter = currentText.substring(lineEnd);
         
-        const textBeforeThisLine = currentText.substring(0, currentLineStart);
-        // textAfterThisLine should include the newline character if currentLineEnd was its position
-        const textAfterThisLine = currentText.substring(currentLineEnd); 
-                                      
-        const newText = textBeforeThisLine + '---' + '\n' + textAfterThisLine;
+        const newText = `${textBefore}---\n${textAfter}`;
         setNoteContent(newText);
-
-        const newCursorPos = (textBeforeThisLine + '---' + '\n').length;
+  
+        const newCursorPos = `${textBefore}---\n`.length;
         setTimeout(() => {
           if (textareaRef.current) {
             textareaRef.current.focus();
             textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
           }
         }, 0);
-        return; 
+        return;
       }
     }
     
@@ -143,7 +136,6 @@ export function OrganizeModeView() {
         setIsSlashPaletteOpen(false);
         event.preventDefault();
       }
-      // Add other slash palette keyboard interactions here if needed (e.g., ArrowUp, ArrowDown, Enter for selection)
     }
   };
 
@@ -210,54 +202,69 @@ export function OrganizeModeView() {
 
 
   return (
-    <div className="flex flex-col h-full p-4 sm:p-6 md:p-8 lg:p-12 overflow-y-auto bg-background text-foreground">
-      <div ref={popoverAnchorRef} className="w-full max-w-3xl mx-auto flex flex-col flex-grow relative">
-        <div className="flex justify-between items-center mb-6 md:mb-8 flex-shrink-0">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-foreground">
-            {t('appModes.organizeTitle')}
-          </h1>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" aria-label={t('export.title')}>
-                <Download className="h-5 w-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleExport('txt')}>
-                <FileText className="mr-2 h-4 w-4" />
-                <span>{t('export.txt')}</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport('md')}>
-                <FileType className="mr-2 h-4 w-4" /> 
-                <span>{t('export.md')}</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => handleExport('pdf')}>
-                <FileJson className="mr-2 h-4 w-4" /> 
-                <span>{t('export.pdf')}</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+    <div className="flex flex-col h-full overflow-hidden bg-background text-foreground">
+      <div className="flex justify-between items-center p-4 sm:p-6 md:p-8 border-b flex-shrink-0">
+        <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">
+          {t('appModes.organizeTitle')}
+        </h1>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="icon" aria-label={t('export.title')}>
+              <Download className="h-5 w-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleExport('txt')}>
+              <FileText className="mr-2 h-4 w-4" />
+              <span>{t('export.txt')}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleExport('md')}>
+              <FileType className="mr-2 h-4 w-4" /> 
+              <span>{t('export.md')}</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => handleExport('pdf')}>
+              <FileJson className="mr-2 h-4 w-4" /> 
+              <span>{t('export.pdf')}</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-0 overflow-hidden">
+        {/* Editor Pane */}
+        <div ref={popoverAnchorRef} className="relative flex flex-col h-full border-r md:border-r-0">
+          <ScrollArea className="flex-grow h-full">
+            <Textarea
+              ref={textareaRef}
+              placeholder={t('organizeMode.placeholder')}
+              value={noteContent}
+              onChange={handleTextChange}
+              onKeyDown={handleKeyDown}
+              className="w-full h-full resize-none border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-4 md:p-6 text-base leading-relaxed bg-transparent placeholder-muted-foreground/70"
+              aria-label={t('organizeMode.placeholder')}
+            />
+          </ScrollArea>
+          {popoverAnchorRef.current && (
+            <SlashCommandPalette
+              isOpen={isSlashPaletteOpen}
+              onOpenChange={setIsSlashPaletteOpen}
+              commands={availableCommands}
+              onCommandSelect={handleCommandSelect}
+              query={slashQuery}
+              targetRef={popoverAnchorRef}
+            />
+          )}
         </div>
-        <Textarea
-          ref={textareaRef}
-          placeholder={t('organizeMode.placeholder')}
-          value={noteContent}
-          onChange={handleTextChange}
-          onKeyDown={handleKeyDown}
-          className="w-full flex-grow resize-none border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-1 md:p-2 text-base leading-relaxed bg-transparent placeholder-muted-foreground/70"
-          aria-label={t('organizeMode.placeholder')}
-        />
-        {popoverAnchorRef.current && (
-          <SlashCommandPalette
-            isOpen={isSlashPaletteOpen}
-            onOpenChange={setIsSlashPaletteOpen}
-            commands={availableCommands}
-            onCommandSelect={handleCommandSelect}
-            query={slashQuery}
-            targetRef={popoverAnchorRef}
-          />
-        )}
+
+        {/* Preview Pane */}
+        <ScrollArea className="h-full overflow-y-auto md:border-l">
+          <div className="p-4 md:p-6 prose dark:prose-invert lg:prose-xl max-w-none">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {noteContent}
+            </ReactMarkdown>
+          </div>
+        </ScrollArea>
       </div>
     </div>
   );
