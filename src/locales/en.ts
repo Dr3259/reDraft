@@ -54,6 +54,10 @@ export default {
     genericSaveError: 'An unexpected error occurred while trying to save.',
     downloadErrorTitle: 'Download Error',
     downloadErrorDescription: 'Could not prepare the canvas for download.',
+    enterFullscreenTooltip: 'Enter Fullscreen',
+    exitFullscreenTooltip: 'Exit Fullscreen',
+    fullscreenErrorTitle: 'Fullscreen Error',
+    fullscreenErrorDescription: 'Could not enter fullscreen mode. Your browser might not support it or permission was denied.',
   },
   export: {
     title: 'Export Note',
@@ -86,3 +90,4 @@ export default {
     copyright: '© {year} NoteCanvas. All rights reserved.',
   }
 } as const;
+

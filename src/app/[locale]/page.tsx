@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useI18n, useCurrentLocale } from '@/locales/client';
 import { LanguageSwitcher } from '@/components/language-switcher';
-import { Eraser, Trash2, Undo2, Save, Download, FolderClock, Palette, Trash } from 'lucide-react';
+import { Eraser, Trash2, Undo2, Save, Download, FolderClock, Palette, Trash, Expand, Minimize } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -78,6 +78,8 @@ export default function WhiteboardPage() {
   const [currentTheme, setCurrentTheme] = useState<CanvasTheme>('whiteboard');
   const [effectivePenColor, setEffectivePenColor] = useState('hsl(0 0% 0%)');
   const [effectiveEraserColor, setEffectiveEraserColor] = useState('hsl(0 0% 100%)');
+
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem(LOCAL_STORAGE_THEME_KEY) as CanvasTheme | null;
@@ -250,6 +252,16 @@ export default function WhiteboardPage() {
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTool, effectiveEraserColor, effectivePenColor]);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
 
 
   const saveCanvasState = () => {
@@ -693,6 +705,23 @@ export default function WhiteboardPage() {
     setTimeout(() => dismissToast(toastId), 2000);
   };
 
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        const { id: toastId } = toast({
+          variant: "destructive",
+          title: t('whiteboard.fullscreenErrorTitle'),
+          description: t('whiteboard.fullscreenErrorDescription'),
+        });
+        setTimeout(() => dismissToast(toastId), 3000);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
+
   const undoDisabled = history.length <= 1;
 
   return (
@@ -755,6 +784,21 @@ export default function WhiteboardPage() {
       )}
       <TooltipProvider>
         <div className="absolute bottom-4 right-4 z-10 flex gap-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={toggleFullscreen}
+                aria-label={isFullscreen ? t('whiteboard.exitFullscreenTooltip') : t('whiteboard.enterFullscreenTooltip')}
+              >
+                {isFullscreen ? <Minimize className="h-5 w-5" /> : <Expand className="h-5 w-5" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{isFullscreen ? t('whiteboard.exitFullscreenTooltip') : t('whiteboard.enterFullscreenTooltip')}</p>
+            </TooltipContent>
+          </Tooltip>
            <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -908,3 +952,4 @@ export default function WhiteboardPage() {
     </div>
   );
 }
+

@@ -54,6 +54,10 @@ export default {
     genericSaveError: '尝试保存时发生意外错误。',
     downloadErrorTitle: '下载错误',
     downloadErrorDescription: '无法准备画布以下载。',
+    enterFullscreenTooltip: '进入全屏',
+    exitFullscreenTooltip: '退出全屏',
+    fullscreenErrorTitle: '全屏错误',
+    fullscreenErrorDescription: '无法进入全屏模式。您的浏览器可能不支持此功能或权限已被拒绝。',
   },
   export: {
     title: '导出笔记',
@@ -86,3 +90,4 @@ export default {
     copyright: '© {year} 笔记画布. 版权所有.',
   }
 } as const;
+
