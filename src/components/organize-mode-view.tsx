@@ -4,10 +4,9 @@
 import * as React from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { useI18n } from '@/locales/client';
-import { useAutosave } from '@/hooks/useAutosave';
+import { useI18n, useCurrentLocale } from '@/locales/client';
 import { SlashCommandPalette, type Command } from '@/components/slash-command-palette';
-import { Heading1, Heading2, Heading3, List, ListOrdered, ListTodo, Download, FileText, FileType, FileJson, Minus, Eye, PencilLine } from 'lucide-react';
+import { Heading1, Heading2, Heading3, List, ListOrdered, ListTodo, Download, FileText, FileType, FileJson, Minus, Eye, PencilLine, FolderClock, FileSignature, Trash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -16,6 +15,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from "@/hooks/use-toast";
 import { jsPDF } from "jspdf";
@@ -24,7 +32,8 @@ import remarkGfm from 'remark-gfm';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
-const LOCAL_STORAGE_CORNELL_NOTE_KEY = 'cornellNote_v1';
+const LOCAL_STORAGE_CORNELL_NOTE_KEY = 'cornellNote_v1'; // Will be deprecated for single auto-save
+const LOCAL_STORAGE_CORNELL_DRAFTS_KEY = 'cornellNoteDrafts_v1'; // New key for multiple drafts
 
 interface CornellNote {
   title: string;
@@ -39,6 +48,13 @@ const initialCornellNote: CornellNote = {
   mainNotes: '',
   summary: '',
 };
+
+interface SavedCornellDraft {
+  id: string;
+  name: string;
+  data: CornellNote;
+  createdAt: string;
+}
 
 const availableCommands: Command[] = [
   { id: 'h1', labelKey: 'slashCommands.heading1', icon: Heading1, action: '# ' },
@@ -59,8 +75,12 @@ interface OrganizeModeViewProps {
 
 export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: OrganizeModeViewProps) {
   const t = useI18n();
+  const locale = useCurrentLocale();
   const { toast, dismiss: dismissToast } = useToast();
-  const [cornellNote, setCornellNote] = useAutosave<CornellNote>(LOCAL_STORAGE_CORNELL_NOTE_KEY, initialCornellNote);
+  
+  const [cornellNote, setCornellNote] = React.useState<CornellNote>(initialCornellNote);
+  const [cornellDrafts, setCornellDrafts] = React.useState<SavedCornellDraft[]>([]);
+  const [isCornellDraftsDialogOpen, setIsCornellDraftsDialogOpen] = React.useState(false);
   
   const mainNotesTextareaRef = React.useRef<HTMLTextAreaElement>(null);
   const popoverAnchorRef = React.useRef<HTMLDivElement>(null); 
@@ -69,6 +89,45 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
   const [slashQuery, setSlashQuery] = React.useState('');
   const [slashTriggerPosition, setSlashTriggerPosition] = React.useState(0);
   const [organizeViewMode, setOrganizeViewMode] = React.useState<OrganizeViewMode>('edit');
+
+  React.useEffect(() => {
+    const loadDrafts = () => {
+      const savedDraftsJson = localStorage.getItem(LOCAL_STORAGE_CORNELL_DRAFTS_KEY);
+      if (savedDraftsJson) {
+        try {
+          const parsedDrafts: SavedCornellDraft[] = JSON.parse(savedDraftsJson);
+          setCornellDrafts(parsedDrafts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+        } catch (e) {
+          console.error("Error parsing Cornell drafts from localStorage:", e);
+          localStorage.removeItem(LOCAL_STORAGE_CORNELL_DRAFTS_KEY);
+        }
+      } else {
+        // Attempt to load from old single auto-saved note if no drafts exist
+        const oldNoteJson = localStorage.getItem(LOCAL_STORAGE_CORNELL_NOTE_KEY);
+        if (oldNoteJson) {
+          try {
+            const oldNote = JSON.parse(oldNoteJson) as CornellNote;
+            // Only load if it's not the initial empty state
+            if (oldNote.title || oldNote.cues || oldNote.mainNotes || oldNote.summary) {
+              setCornellNote(oldNote);
+              // Optionally, prompt user to save it as a named draft
+              toast({
+                title: t('cornellNotes.migratedOldNoteTitle'),
+                description: t('cornellNotes.migratedOldNoteDescription'),
+              });
+              // Clear old storage key after migration attempt
+              localStorage.removeItem(LOCAL_STORAGE_CORNELL_NOTE_KEY);
+            }
+          } catch (e) {
+            console.error("Error parsing old Cornell note:", e);
+            localStorage.removeItem(LOCAL_STORAGE_CORNELL_NOTE_KEY);
+          }
+        }
+      }
+    };
+    loadDrafts();
+  }, [t, toast]);
+
 
   const handleToggleViewMode = () => {
     setOrganizeViewMode(prev => prev === 'edit' ? 'preview' : 'edit');
@@ -140,16 +199,14 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
       const cursorPos = textarea.selectionStart;
       const currentText = textarea.value;
       const lineStart = currentText.lastIndexOf('\n', cursorPos - 1) + 1;
-      const currentLineText = currentText.substring(lineStart, cursorPos);
+      const currentLineText = currentText.substring(lineStart, cursorPos).trim();
       
-      const trimmedCurrentLine = currentLineText.trim();
-
-      if (trimmedCurrentLine === '---') {
+      if (currentLineText === '---') {
           event.preventDefault();
           const textBefore = currentText.substring(0, lineStart);
-          const textAfterCurrentLine = currentText.substring(cursorPos);
+          const textAfterCursor = currentText.substring(cursorPos);
           
-          const newText = `${textBefore}---\n${textAfterCurrentLine}`;
+          const newText = `${textBefore}---\n${textAfterCursor}`;
           handleInputChange('mainNotes', newText);
   
           const newCursorPos = `${textBefore}---\n`.length;
@@ -219,7 +276,7 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
         const margin = 15; 
         const maxLineWidth = pageWidth - margin * 2;
         
-        doc.setTextColor(themeTextColor === 'hsl(0 0% 100%)' || themeTextColor === 'hsl(0 0% 95%)' ? 20 : 20); // Basic dark/light text for PDF
+        doc.setTextColor(themeTextColor === 'hsl(0 0% 100%)' || themeTextColor === 'hsl(0 0% 95%)' ? 20 : 20);
 
         const lines = doc.splitTextToSize(exportContent, maxLineWidth);
         doc.text(lines, margin, margin);
@@ -233,6 +290,84 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
         variant: "destructive",
         title: t('toast.pdfExportErrorTitle'), 
         description: t('toast.pdfExportErrorDescription'),
+      });
+      setTimeout(() => dismissToast(toastId), 3000);
+    }
+  };
+  
+  const handleSaveCornellDraft = () => {
+    if (!cornellNote.title && !cornellNote.cues && !cornellNote.mainNotes && !cornellNote.summary) {
+      const { id: toastId } = toast({
+        title: t('cornellNotes.emptyDraftTitle'),
+        description: t('cornellNotes.emptyDraftDescription'),
+      });
+      setTimeout(() => dismissToast(toastId), 3000);
+      return;
+    }
+
+    const draftName = cornellNote.title.trim() 
+      ? `${t('cornellNotes.draftNamePrefix')} - ${cornellNote.title.trim()}`
+      : `${t('cornellNotes.draftNamePrefix')} - ${new Date().toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' })}`;
+    
+    const newDraft: SavedCornellDraft = {
+      id: Date.now().toString(),
+      name: draftName,
+      data: { ...cornellNote },
+      createdAt: new Date().toISOString(),
+    };
+
+    const updatedDrafts = [newDraft, ...cornellDrafts].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    try {
+      localStorage.setItem(LOCAL_STORAGE_CORNELL_DRAFTS_KEY, JSON.stringify(updatedDrafts));
+      setCornellDrafts(updatedDrafts);
+      const { id: toastId } = toast({
+        title: t('cornellNotes.draftSavedTitle'),
+        description: t('cornellNotes.draftSavedDescription', { draftName: newDraft.name }),
+      });
+      setTimeout(() => dismissToast(toastId), 2000);
+    } catch (error) {
+      console.error("Error saving Cornell draft to localStorage:", error);
+      const { id: toastId } = toast({
+        variant: "destructive",
+        title: t('cornellNotes.draftSaveErrorTitle'),
+        description: t('cornellNotes.draftSaveErrorDescription'),
+      });
+      setTimeout(() => dismissToast(toastId), 3000);
+    }
+  };
+
+  const handleLoadCornellDraft = (draftId: string) => {
+    const draftToLoad = cornellDrafts.find(d => d.id === draftId);
+    if (!draftToLoad) return;
+
+    setCornellNote({ ...draftToLoad.data });
+    const { id: toastId } = toast({ 
+      title: t('cornellNotes.draftLoadedTitle'), 
+      description: t('cornellNotes.draftLoadedDescription', { draftName: draftToLoad.name }) 
+    });
+    setTimeout(() => dismissToast(toastId), 2000);
+    setIsCornellDraftsDialogOpen(false);
+  };
+
+  const handleDeleteCornellDraft = (draftId: string) => {
+    const draftToDelete = cornellDrafts.find(d => d.id === draftId);
+    if (!draftToDelete) return;
+
+    const updatedDrafts = cornellDrafts.filter(d => d.id !== draftId);
+    try {
+      localStorage.setItem(LOCAL_STORAGE_CORNELL_DRAFTS_KEY, JSON.stringify(updatedDrafts));
+      setCornellDrafts(updatedDrafts);
+      const { id: toastId } = toast({
+        title: t('cornellNotes.draftDeletedTitle'),
+        description: t('cornellNotes.draftDeletedDescription', { draftName: draftToDelete.name }),
+      });
+      setTimeout(() => dismissToast(toastId), 2000);
+    } catch (error) {
+      console.error("Error deleting Cornell draft from localStorage:", error);
+      const { id: toastId } = toast({
+        variant: "destructive",
+        title: t('cornellNotes.draftDeleteErrorTitle'),
+        description: t('cornellNotes.draftDeleteErrorDescription'),
       });
       setTimeout(() => dismissToast(toastId), 3000);
     }
@@ -289,7 +424,7 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
             --tw-prose-captions: ${themeTextColor};
             --tw-prose-code: ${themeTextColor};
             --tw-prose-pre-code: ${themeTextColor};
-            --tw-prose-pre-bg: rgba(0,0,0,0.2); // A generic semi-transparent dark for code blocks
+            --tw-prose-pre-bg: rgba(0,0,0,0.2);
             --tw-prose-th-borders: ${themeTextColor};
             --tw-prose-td-borders: ${themeTextColor};
         }
@@ -304,6 +439,30 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
           aria-label={t('cornellNotes.titlePlaceholder')}
         />
         <div className="flex items-center space-x-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                 <Button variant="outline" size="icon" onClick={() => setIsCornellDraftsDialogOpen(true)} aria-label={t('cornellNotes.manageDraftsTooltip')}>
+                  <FolderClock className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{t('cornellNotes.manageDraftsTooltip')}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="icon" onClick={handleSaveCornellDraft} aria-label={t('cornellNotes.saveDraftTooltip')}>
+                  <FileSignature className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{t('cornellNotes.saveDraftTooltip')}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -410,6 +569,55 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
           </div>
         </div>
       </div>
+      <Dialog open={isCornellDraftsDialogOpen} onOpenChange={setIsCornellDraftsDialogOpen}>
+        <DialogContent className="sm:max-w-[525px]">
+          <DialogHeader>
+            <DialogTitle>{t('cornellNotes.draftsDialogTitle')}</DialogTitle>
+            <DialogDescription>
+              {cornellDrafts.length > 0 ? t('cornellNotes.draftsDialogDescription') : t('cornellNotes.noDraftsMessage')}
+            </DialogDescription>
+          </DialogHeader>
+          {cornellDrafts.length > 0 && (
+            <ScrollArea className="h-[300px] w-full rounded-md border p-4">
+              <div className="space-y-4">
+                {cornellDrafts.map((draft) => (
+                  <div key={draft.id} className="flex items-center justify-between p-2 rounded-md hover:bg-accent space-x-3">
+                    <div className="flex-grow">
+                      <p className="font-medium">{draft.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(draft.createdAt).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' })}
+                      </p>
+                       {draft.data.title && <p className="text-xs text-muted-foreground mt-1 truncate">{t('cornellNotes.titleLabel')}: {draft.data.title}</p>}
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button variant="outline" size="sm" onClick={() => handleLoadCornellDraft(draft.id)}>
+                        {t('cornellNotes.loadDraftButton')}
+                      </Button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleDeleteCornellDraft(draft.id)}>
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{t('cornellNotes.deleteDraftTooltip')}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          )}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">{t('cornellNotes.closeDialogButton')}</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
