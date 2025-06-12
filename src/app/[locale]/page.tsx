@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useI18n, useCurrentLocale } from '@/locales/client';
 import { LanguageSwitcher } from '@/components/language-switcher';
-import { Eraser, Trash2, Undo2, Save, Download, FolderClock, Palette, Trash, Expand, Minimize, FileSignature, FileDown, PenLine } from 'lucide-react';
+import { Eraser, Trash2, Undo2, Download, FolderClock, Palette, Trash, Expand, Minimize, FileSignature, FileDown, PenLine } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -461,12 +461,12 @@ export default function WhiteboardPage() {
     setCurrentTool(prevTool => prevTool === 'pen' ? 'eraser' : 'pen');
   };
   
-  const handleSaveCanvasDraft = (type: 'save' | 'saveAs' = 'save') => {
+  const handleSaveCanvas = (type: 'saveDraft' | 'downloadAsPng') => {
     const canvas = canvasRef.current;
      if (!canvas || canvas.width === 0 || canvas.height === 0) {
       const { id: toastId } = toast({
         variant: "destructive",
-        title: t(type === 'save' ? 'whiteboard.draftSaveErrorTitle' : 'whiteboard.downloadErrorTitle'),
+        title: t(type === 'saveDraft' ? 'whiteboard.draftSaveErrorTitle' : 'whiteboard.downloadErrorTitle'),
         description: t('whiteboard.canvasNotReadyError'),
       });
       setTimeout(() => { dismissToast(toastId); }, 3000);
@@ -481,8 +481,8 @@ export default function WhiteboardPage() {
     if (!tempCtx) {
       const { id: toastId } = toast({
         variant: "destructive",
-        title: t(type === 'save' ? 'whiteboard.draftSaveErrorTitle' : 'whiteboard.downloadErrorTitle'),
-        description: t(type === 'save' ? 'whiteboard.genericSaveError' : 'whiteboard.downloadErrorDescription'),
+        title: t(type === 'saveDraft' ? 'whiteboard.draftSaveErrorTitle' : 'whiteboard.downloadErrorTitle'),
+        description: t(type === 'saveDraft' ? 'whiteboard.genericSaveError' : 'whiteboard.downloadErrorDescription'),
       });
       setTimeout(() => { dismissToast(toastId); }, 3000);
       return;
@@ -498,8 +498,8 @@ export default function WhiteboardPage() {
       console.error("Error getting blank canvas data URL:", e);
       const { id: toastId } = toast({
         variant: "destructive",
-        title: t(type === 'save' ? 'whiteboard.draftSaveErrorTitle' : 'whiteboard.downloadErrorTitle'),
-        description: t(type === 'save' ? 'whiteboard.genericSaveError' : 'whiteboard.downloadErrorDescription'),
+        title: t(type === 'saveDraft' ? 'whiteboard.draftSaveErrorTitle' : 'whiteboard.downloadErrorTitle'),
+        description: t(type === 'saveDraft' ? 'whiteboard.genericSaveError' : 'whiteboard.downloadErrorDescription'),
       });
       setTimeout(() => { dismissToast(toastId); }, 3000);
       return;
@@ -512,8 +512,8 @@ export default function WhiteboardPage() {
        console.error("Error getting current canvas data URL:", e);
        const { id: toastId } = toast({
         variant: "destructive",
-        title: t(type === 'save' ? 'whiteboard.draftSaveErrorTitle' : 'whiteboard.downloadErrorTitle'),
-        description: t(type === 'save' ? 'whiteboard.genericSaveError' : 'whiteboard.downloadErrorDescription'),
+        title: t(type === 'saveDraft' ? 'whiteboard.draftSaveErrorTitle' : 'whiteboard.downloadErrorTitle'),
+        description: t(type === 'saveDraft' ? 'whiteboard.genericSaveError' : 'whiteboard.downloadErrorDescription'),
       });
       setTimeout(() => { dismissToast(toastId); }, 3000);
       return;
@@ -521,8 +521,8 @@ export default function WhiteboardPage() {
     
     if (currentCanvasDataUrl === blankCanvasDataUrl) {
       const { id: toastId } = toast({
-        title: t(type === 'save' ? 'whiteboard.emptyCanvasTitle' : 'whiteboard.emptyCanvasDownloadTitle'),
-        description: t(type === 'save' ? 'whiteboard.emptyCanvasDescription' : 'whiteboard.emptyCanvasDownloadDescription'),
+        title: t(type === 'saveDraft' ? 'whiteboard.emptyCanvasTitle' : 'whiteboard.emptyCanvasDownloadTitle'),
+        description: t(type === 'saveDraft' ? 'whiteboard.emptyCanvasDescription' : 'whiteboard.emptyCanvasDownloadDescription'),
       });
       setTimeout(() => {
         dismissToast(toastId);
@@ -530,7 +530,7 @@ export default function WhiteboardPage() {
       return;
     }
 
-    if (type === 'saveAs') {
+    if (type === 'downloadAsPng') {
       const link = document.createElement('a');
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       link.download = `whiteboard-${timestamp}.png`;
@@ -546,6 +546,7 @@ export default function WhiteboardPage() {
       return;
     }
     
+    // Save Draft logic
     try {
       const draftName = `${t('whiteboard.draftNamePrefix')} ${new Date().toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' })}`;
       const newDraft: SavedDraft = {
@@ -767,7 +768,7 @@ export default function WhiteboardPage() {
                           />
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>{t(`penSettings.colors.${color.name.toLowerCase()}` as any, color.name)}</p>
+                          <p>{t(`penSettings.colors.${color.name.toLowerCase()}` as any)}</p>
                         </TooltipContent>
                       </Tooltip>
                     ))}
@@ -811,7 +812,7 @@ export default function WhiteboardPage() {
               <Button
                 variant="outline"
                 size="icon"
-                onClick={() => handleSaveCanvasDraft('save')}
+                onClick={() => handleSaveCanvas('saveDraft')}
                 aria-label={t('whiteboard.saveDraftTooltip')}
               >
                 <FileSignature className="h-5 w-5" />
@@ -826,7 +827,7 @@ export default function WhiteboardPage() {
               <Button
                 variant="outline"
                 size="icon"
-                onClick={() => handleSaveCanvasDraft('saveAs')}
+                onClick={() => handleSaveCanvas('downloadAsPng')}
                 aria-label={t('whiteboard.saveAsTooltip')}
               >
                 <FileDown className="h-5 w-5" />
