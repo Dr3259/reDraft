@@ -102,20 +102,18 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
           localStorage.removeItem(LOCAL_STORAGE_CORNELL_DRAFTS_KEY);
         }
       } else {
-        // Check for old single auto-saved note and migrate if it exists and has content
         const oldNoteJson = localStorage.getItem(LOCAL_STORAGE_CORNELL_NOTE_KEY);
         if (oldNoteJson) {
           try {
             const oldNote = JSON.parse(oldNoteJson) as CornellNote;
             if (oldNote.title || oldNote.cues || oldNote.mainNotes || oldNote.summary) {
-              setCornellNote(oldNote); // Load it into the editor
-              // Optionally, inform the user they can now save it as a named draft
+              setCornellNote(oldNote); 
               const { id: toastId } = toast({
                 title: t('cornellNotes.migratedOldNoteTitle'),
                 description: t('cornellNotes.migratedOldNoteDescription'),
               });
               setTimeout(() => dismissToast(toastId), 5000);
-              localStorage.removeItem(LOCAL_STORAGE_CORNELL_NOTE_KEY); // Remove the old key
+              localStorage.removeItem(LOCAL_STORAGE_CORNELL_NOTE_KEY); 
             }
           } catch (e) {
             console.error("Error parsing old Cornell note:", e);
@@ -169,7 +167,6 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
     
     let actionToInsert = command.action;
     if (command.id === 'hr') {
-      // Ensure HR is on its own line, potentially adding a newline before if needed
       if (startOfSlashCommand > 0 && currentValue.charAt(startOfSlashCommand - 1) !== '\n') {
         actionToInsert = '\n' + actionToInsert;
       }
@@ -202,7 +199,6 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
       
       const lineStart = currentText.lastIndexOf('\n', cursorPos - 1) + 1;
       const currentLineTextUntrimmed = currentText.substring(lineStart, cursorPos);
-      // Check if the line (ignoring leading/trailing spaces of the line content itself before cursor) is '---'
       const currentLineTextBeforeCursor = currentText.substring(lineStart, cursorPos).trim();
 
 
@@ -211,7 +207,6 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
           const textBeforeCurrentLine = currentText.substring(0, lineStart);
           const textAfterCursor = currentText.substring(cursorPos);
           
-          // Ensure the '---' is exactly that, then add a newline, then the rest of the text
           const newText = `${textBeforeCurrentLine}---\n${textAfterCursor}`;
           handleInputChange('mainNotes', newText);
   
@@ -231,7 +226,6 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
         setIsSlashPaletteOpen(false);
         event.preventDefault();
       }
-      // Add more keyboard interactions for palette if needed (e.g., Arrows, Enter)
     }
   };
 
@@ -283,9 +277,7 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
         const margin = 15; 
         const maxLineWidth = pageWidth - margin * 2;
         
-        // Use a basic color for text, slightly different from pure black/white if needed for theme
-        // For simplicity, using black. If themeTextColor is very light, PDF text might be hard to see on white.
-        doc.setTextColor(0,0,0); // Black text for PDF
+        doc.setTextColor(0,0,0); 
 
         const lines = doc.splitTextToSize(exportContent, maxLineWidth);
         doc.text(lines, margin, margin);
@@ -382,7 +374,7 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
   };
 
   const SectionHeader = ({ label }: { label: string }) => (
-    <div className="p-2 border-b border-border" style={{ borderColor: 'hsl(var(--border))' }}>
+    <div className="p-2 border-b border-border flex-shrink-0" style={{ borderColor: 'hsl(var(--border))' }}>
       <h2 className="font-semibold text-sm" style={{ color: themeTextColor, opacity: 0.8 }}>{label}</h2>
     </div>
   );
@@ -432,7 +424,7 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
             --tw-prose-captions: ${themeTextColor};
             --tw-prose-code: ${themeTextColor};
             --tw-prose-pre-code: ${themeTextColor};
-            --tw-prose-pre-bg: rgba(120,120,120,0.1); /* Adjusted for better visibility on various backgrounds */
+            --tw-prose-pre-bg: rgba(120,120,120,0.1); 
             --tw-prose-th-borders: ${themeTextColor};
             --tw-prose-td-borders: ${themeTextColor};
         }
@@ -485,7 +477,7 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
       </div>
 
       <div className="flex flex-grow overflow-hidden" ref={popoverAnchorRef}>
-        <div className="w-1/3 lg:w-1/4 flex flex-col border-r border-border" style={{ borderColor: 'hsl(var(--border))' }}>
+        <div className="w-[38.2%] flex flex-col border-r border-border" style={{ borderColor: 'hsl(var(--border))' }}>
           <SectionHeader label={t('cornellNotes.cuesArea')} />
           <div className="flex-grow relative">
             {organizeViewMode === 'edit' ? (
@@ -503,8 +495,8 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
           </div>
         </div>
 
-        <div className="w-2/3 lg:w-3/4 flex flex-col">
-          <div className="flex-grow flex flex-col" style={{minHeight: '70%'}}>
+        <div className="w-[61.8%] flex flex-col">
+          <div className="h-[61.8%] flex flex-col">
              <SectionHeader label={t('cornellNotes.mainNotesArea')} />
             <div className="flex-grow relative">
               {organizeViewMode === 'edit' ? (
@@ -534,7 +526,7 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
             </div>
           </div>
 
-          <div className="flex flex-col border-t border-border" style={{minHeight: '30%', borderColor: 'hsl(var(--border))' }}>
+          <div className="h-[38.2%] flex flex-col border-t border-border" style={{ borderColor: 'hsl(var(--border))' }}>
             <SectionHeader label={t('cornellNotes.summaryArea')} />
             <div className="flex-grow relative">
             {organizeViewMode === 'edit' ? (
@@ -554,8 +546,8 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
         </div>
       </div>
 
-      <TooltipProvider>
-        <div className="absolute bottom-4 right-4 z-10 flex gap-2">
+      <div className="absolute bottom-4 right-4 z-10 flex gap-2">
+        <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="outline" size="icon" onClick={() => setIsCornellDraftsDialogOpen(true)} aria-label={t('cornellNotes.manageDraftsTooltip')}>
@@ -566,6 +558,8 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
               <p>{t('cornellNotes.manageDraftsTooltip')}</p>
             </TooltipContent>
           </Tooltip>
+        </TooltipProvider>
+        <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="outline" size="icon" onClick={handleSaveCornellDraft} aria-label={t('cornellNotes.saveDraftTooltip')}>
@@ -576,8 +570,8 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
               <p>{t('cornellNotes.saveDraftTooltip')}</p>
             </TooltipContent>
           </Tooltip>
-        </div>
-      </TooltipProvider>
+        </TooltipProvider>
+      </div>
       
       <Dialog open={isCornellDraftsDialogOpen} onOpenChange={setIsCornellDraftsDialogOpen}>
         <DialogContent className="sm:max-w-[525px]">
