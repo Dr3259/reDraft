@@ -102,20 +102,16 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
           localStorage.removeItem(LOCAL_STORAGE_CORNELL_DRAFTS_KEY);
         }
       } else {
-        // Attempt to load from old single auto-saved note if no drafts exist
         const oldNoteJson = localStorage.getItem(LOCAL_STORAGE_CORNELL_NOTE_KEY);
         if (oldNoteJson) {
           try {
             const oldNote = JSON.parse(oldNoteJson) as CornellNote;
-            // Only load if it's not the initial empty state
             if (oldNote.title || oldNote.cues || oldNote.mainNotes || oldNote.summary) {
               setCornellNote(oldNote);
-              // Optionally, prompt user to save it as a named draft
               toast({
                 title: t('cornellNotes.migratedOldNoteTitle'),
                 description: t('cornellNotes.migratedOldNoteDescription'),
               });
-              // Clear old storage key after migration attempt
               localStorage.removeItem(LOCAL_STORAGE_CORNELL_NOTE_KEY);
             }
           } catch (e) {
@@ -198,18 +194,20 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
     if (event.key === 'Enter') {
       const cursorPos = textarea.selectionStart;
       const currentText = textarea.value;
+      
       const lineStart = currentText.lastIndexOf('\n', cursorPos - 1) + 1;
-      const currentLineText = currentText.substring(lineStart, cursorPos).trim();
+      const currentLineTextUntrimmed = currentText.substring(lineStart, cursorPos);
+      const currentLineText = currentLineTextUntrimmed.trim();
       
       if (currentLineText === '---') {
           event.preventDefault();
-          const textBefore = currentText.substring(0, lineStart);
+          const textBeforeCurrentLine = currentText.substring(0, lineStart);
           const textAfterCursor = currentText.substring(cursorPos);
           
-          const newText = `${textBefore}---\n${textAfterCursor}`;
+          const newText = `${textBeforeCurrentLine}---\n${textAfterCursor}`;
           handleInputChange('mainNotes', newText);
   
-          const newCursorPos = `${textBefore}---\n`.length;
+          const newCursorPos = `${textBeforeCurrentLine}---\n`.length;
           setTimeout(() => {
             if (textarea.focus) {
               textarea.focus();
@@ -402,7 +400,7 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
 
   return (
     <div 
-      className="flex flex-col h-full overflow-hidden" 
+      className="relative flex flex-col h-full overflow-hidden" 
       style={{ backgroundColor: themeBackgroundColor, color: themeTextColor }}
     >
       <style jsx global>{`
@@ -439,30 +437,6 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
           aria-label={t('cornellNotes.titlePlaceholder')}
         />
         <div className="flex items-center space-x-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                 <Button variant="outline" size="icon" onClick={() => setIsCornellDraftsDialogOpen(true)} aria-label={t('cornellNotes.manageDraftsTooltip')}>
-                  <FolderClock className="h-5 w-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{t('cornellNotes.manageDraftsTooltip')}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="icon" onClick={handleSaveCornellDraft} aria-label={t('cornellNotes.saveDraftTooltip')}>
-                  <FileSignature className="h-5 w-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{t('cornellNotes.saveDraftTooltip')}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -569,6 +543,32 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
           </div>
         </div>
       </div>
+
+      <TooltipProvider>
+        <div className="absolute bottom-4 right-4 z-10 flex gap-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" size="icon" onClick={() => setIsCornellDraftsDialogOpen(true)} aria-label={t('cornellNotes.manageDraftsTooltip')}>
+                <FolderClock className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{t('cornellNotes.manageDraftsTooltip')}</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" size="icon" onClick={handleSaveCornellDraft} aria-label={t('cornellNotes.saveDraftTooltip')}>
+                <FileSignature className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{t('cornellNotes.saveDraftTooltip')}</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </TooltipProvider>
+      
       <Dialog open={isCornellDraftsDialogOpen} onOpenChange={setIsCornellDraftsDialogOpen}>
         <DialogContent className="sm:max-w-[525px]">
           <DialogHeader>
