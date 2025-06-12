@@ -198,16 +198,15 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
       const currentText = textarea.value;
       
       const lineStart = currentText.lastIndexOf('\n', cursorPos - 1) + 1;
-      const currentLineTextUntrimmed = currentText.substring(lineStart, cursorPos);
-      const currentLineTextBeforeCursor = currentText.substring(lineStart, cursorPos).trim();
+      const currentLineText = currentText.substring(lineStart, currentText.indexOf('\n', lineStart) === -1 ? currentText.length : currentText.indexOf('\n', lineStart)).trim();
 
 
-      if (currentLineTextBeforeCursor === '---') {
+      if (currentLineText === '---') {
           event.preventDefault();
           const textBeforeCurrentLine = currentText.substring(0, lineStart);
-          const textAfterCursor = currentText.substring(cursorPos);
-          
-          const newText = `${textBeforeCurrentLine}---\n${textAfterCursor}`;
+          const textAfterCurrentLineContent = currentText.substring(lineStart + currentLineText.length + (currentText.indexOf('\n', lineStart) === lineStart + currentLineText.length ? 1: 0) );
+
+          const newText = `${textBeforeCurrentLine}---\n${textAfterCurrentLineContent}`;
           handleInputChange('mainNotes', newText);
   
           const newCursorPos = `${textBeforeCurrentLine}---\n`.length;
@@ -374,8 +373,13 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
   };
 
   const SectionHeader = ({ label }: { label: string }) => (
-    <div className="p-2 border-b border-border flex-shrink-0" style={{ borderColor: 'hsl(var(--border))' }}>
-      <h2 className="font-semibold text-sm" style={{ color: themeTextColor, opacity: 0.8 }}>{label}</h2>
+    <div className="px-3 pt-3 pb-1 flex-shrink-0">
+      <h2 
+        className="font-medium text-xs uppercase tracking-wider"
+        style={{ color: themeTextColor, opacity: 0.6 }}
+      >
+        {label}
+      </h2>
     </div>
   );
 
