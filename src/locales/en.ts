@@ -41,6 +41,10 @@ export default {
     draftNamePrefix: 'Draft',
     closeDialogButton: 'Close',
     draftThumbnailAlt: 'Thumbnail of draft {draftName}',
+    emptyCanvasTitle: 'Empty Canvas',
+    emptyCanvasDescription: 'There is no content on the canvas to save.',
+    canvasNotReadyError: 'Canvas is not ready. Please wait a moment and try again.',
+    genericSaveError: 'An unexpected error occurred while trying to save.',
   },
   export: {
     title: 'Export Note',

@@ -198,8 +198,6 @@ export default function WhiteboardPage() {
       context.fillStyle = effectiveEraserColor;
       context.fillRect(0, 0, currentCanvas.width, currentCanvas.height);
       
-      // Try to redraw the existing content onto the resized canvas
-      // This might not be perfect if aspect ratio changes, but it's better than losing content
       const tempImg = new window.Image();
       tempImg.onload = () => {
         context.drawImage(tempImg, 0, 0);
@@ -214,9 +212,8 @@ export default function WhiteboardPage() {
         context.lineCap = 'round';
         context.lineJoin = 'round';
         context.globalCompositeOperation = 'source-over';
-        saveCanvasState(); // Save the state after redraw and style application
+        saveCanvasState(); 
       }
-      // To create the temp image, we need the ImageData to a DataURL
       const tempCanvas = document.createElement('canvas');
       tempCanvas.width = currentImageData.width;
       tempCanvas.height = currentImageData.height;
@@ -225,7 +222,6 @@ export default function WhiteboardPage() {
         tempCtx.putImageData(currentImageData, 0, 0);
         tempImg.src = tempCanvas.toDataURL();
       } else {
-        // Fallback if temp canvas creation fails: just put the old data if sizes match, or clear.
         if (currentCanvas.width === currentImageData.width && currentCanvas.height === currentImageData.height) {
            context.putImageData(currentImageData, 0, 0);
         }
@@ -455,14 +451,79 @@ export default function WhiteboardPage() {
 
   const handleSaveCanvasDraft = () => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || canvas.width === 0 || canvas.height === 0) {
+      const { id: toastId } = toast({
+        variant: "destructive",
+        title: t('whiteboard.draftSaveErrorTitle'),
+        description: t('whiteboard.canvasNotReadyError'),
+      });
+      setTimeout(() => { dismissToast(toastId); }, 3000);
+      return;
+    }
+
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const tempCtx = tempCanvas.getContext('2d');
+
+    if (!tempCtx) {
+      const { id: toastId } = toast({
+        variant: "destructive",
+        title: t('whiteboard.draftSaveErrorTitle'),
+        description: t('whiteboard.genericSaveError'),
+      });
+      setTimeout(() => { dismissToast(toastId); }, 3000);
+      return;
+    }
+
+    tempCtx.fillStyle = effectiveEraserColor;
+    tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+    
+    let blankCanvasDataUrl: string;
     try {
-      const dataUrl = canvas.toDataURL('image/png');
+      blankCanvasDataUrl = tempCanvas.toDataURL('image/png');
+    } catch (e) {
+      console.error("Error getting blank canvas data URL:", e);
+      const { id: toastId } = toast({
+        variant: "destructive",
+        title: t('whiteboard.draftSaveErrorTitle'),
+        description: t('whiteboard.genericSaveError'),
+      });
+      setTimeout(() => { dismissToast(toastId); }, 3000);
+      return;
+    }
+
+    let currentCanvasDataUrl: string;
+    try {
+      currentCanvasDataUrl = canvas.toDataURL('image/png');
+    } catch (e) {
+       console.error("Error getting current canvas data URL:", e);
+       const { id: toastId } = toast({
+        variant: "destructive",
+        title: t('whiteboard.draftSaveErrorTitle'),
+        description: t('whiteboard.genericSaveError'),
+      });
+      setTimeout(() => { dismissToast(toastId); }, 3000);
+      return;
+    }
+
+    if (currentCanvasDataUrl === blankCanvasDataUrl) {
+      const { id: toastId } = toast({
+        title: t('whiteboard.emptyCanvasTitle'),
+        description: t('whiteboard.emptyCanvasDescription'),
+      });
+      setTimeout(() => {
+        dismissToast(toastId);
+      }, 3000);
+      return;
+    }
+
+    try {
       const draftName = `${t('whiteboard.draftNamePrefix')} ${new Date().toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' })}`;
       const newDraft: SavedDraft = {
         id: Date.now().toString(),
         name: draftName,
-        dataUrl: dataUrl,
+        dataUrl: currentCanvasDataUrl,
         createdAt: new Date().toISOString(),
       };
 
@@ -498,7 +559,7 @@ export default function WhiteboardPage() {
     img.onload = () => {
       context.fillStyle = effectiveEraserColor;
       context.fillRect(0, 0, canvas.width, canvas.height);
-      context.drawImage(img, 0, 0, canvas.width, canvas.height); // Ensure image draws to fit canvas
+      context.drawImage(img, 0, 0, canvas.width, canvas.height); 
       
       if (currentTool === 'pen') {
         context.strokeStyle = effectivePenColor;
@@ -511,12 +572,14 @@ export default function WhiteboardPage() {
       context.lineJoin = 'round';
       context.globalCompositeOperation = 'source-over';
       
-      saveCanvasState(); // Save this loaded state as the new current state in history
-      toast({ title: t('whiteboard.draftLoadedTitle'), description: t('whiteboard.draftLoadedDescription', { draftName: draftToLoad.name }) });
+      saveCanvasState(); 
+      const { id: toastId } = toast({ title: t('whiteboard.draftLoadedTitle'), description: t('whiteboard.draftLoadedDescription', { draftName: draftToLoad.name }) });
+      setTimeout(() => dismissToast(toastId), 2000);
       setIsDraftsDialogOpen(false); 
     };
     img.onerror = () => {
-      toast({ variant: "destructive", title: t('whiteboard.draftLoadErrorTitle'), description: t('whiteboard.draftLoadErrorSpecificDescription') });
+      const { id: toastId } = toast({ variant: "destructive", title: t('whiteboard.draftLoadErrorTitle'), description: t('whiteboard.draftLoadErrorSpecificDescription') });
+      setTimeout(() => dismissToast(toastId), 3000);
     };
     img.src = draftToLoad.dataUrl;
   };
@@ -533,10 +596,11 @@ export default function WhiteboardPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast({
+    const { id: toastId } = toast({
       title: t('toast.downloadedTitle'),
       description: t('toast.downloadedDescription', { filename: link.download }),
     });
+    setTimeout(() => dismissToast(toastId), 2000);
   };
   
   const undoDisabled = history.length <= 1;
@@ -740,3 +804,4 @@ export default function WhiteboardPage() {
     </div>
   );
 }
+

@@ -41,6 +41,10 @@ export default {
     draftNamePrefix: '草稿',
     closeDialogButton: '关闭',
     draftThumbnailAlt: '草稿 {draftName} 的缩略图',
+    emptyCanvasTitle: '画布为空',
+    emptyCanvasDescription: '画布上没有可保存的内容。',
+    canvasNotReadyError: '画布尚未准备好。请稍候再试。',
+    genericSaveError: '尝试保存时发生意外错误。',
   },
   export: {
     title: '导出笔记',
