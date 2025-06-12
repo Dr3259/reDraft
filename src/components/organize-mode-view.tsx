@@ -33,6 +33,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
 const LOCAL_STORAGE_CORNELL_DRAFTS_KEY = 'cornellNoteDrafts_v1';
+const LEGACY_LOCAL_STORAGE_KEY = 'cornellNoteContent_v1'; // Old autosave key
 
 interface CornellNote {
   title: string;
@@ -40,6 +41,8 @@ interface CornellNote {
   mainNotes: string;
   summary: string;
 }
+
+type CornellNoteEditableFields = keyof Pick<CornellNote, 'cues' | 'mainNotes' | 'summary'>;
 
 const initialCornellNote: CornellNote = {
   title: '',
@@ -81,13 +84,17 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
   const [cornellDrafts, setCornellDrafts] = React.useState<SavedCornellDraft[]>([]);
   const [isCornellDraftsDialogOpen, setIsCornellDraftsDialogOpen] = React.useState(false);
   
+  const cuesTextareaRef = React.useRef<HTMLTextAreaElement>(null);
   const mainNotesTextareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const summaryTextareaRef = React.useRef<HTMLTextAreaElement>(null);
   const popoverAnchorRef = React.useRef<HTMLDivElement>(null); 
 
   const [isSlashPaletteOpen, setIsSlashPaletteOpen] = React.useState(false);
   const [slashQuery, setSlashQuery] = React.useState('');
   const [slashTriggerPosition, setSlashTriggerPosition] = React.useState(0);
   const [organizeViewMode, setOrganizeViewMode] = React.useState<OrganizeViewMode>('edit');
+  const [activeEditorForSlashCommand, setActiveEditorForSlashCommand] = React.useState<CornellNoteEditableFields | null>(null);
+
 
   React.useEffect(() => {
     const loadDrafts = () => {
@@ -100,6 +107,25 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
           console.error("Error parsing Cornell drafts from localStorage:", e);
           localStorage.removeItem(LOCAL_STORAGE_CORNELL_DRAFTS_KEY);
         }
+      } else {
+        // Check for legacy autosaved data
+        const legacyDataJson = localStorage.getItem(LEGACY_LOCAL_STORAGE_KEY);
+        if (legacyDataJson) {
+          try {
+            const legacyData: Partial<CornellNote> = JSON.parse(legacyDataJson);
+            setCornellNote(prev => ({ ...prev, ...legacyData }));
+            localStorage.removeItem(LEGACY_LOCAL_STORAGE_KEY); // Remove old key
+            const { id: toastId } = toast({
+              title: t('cornellNotes.migratedOldNoteTitle'),
+              description: t('cornellNotes.migratedOldNoteDescription'),
+              duration: 5000,
+            });
+            setTimeout(() => dismissToast(toastId), 5000);
+          } catch (e) {
+            console.error("Error parsing legacy Cornell data from localStorage:", e);
+            localStorage.removeItem(LEGACY_LOCAL_STORAGE_KEY);
+          }
+        }
       }
     };
     loadDrafts();
@@ -111,32 +137,44 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
     setOrganizeViewMode(prev => prev === 'edit' ? 'preview' : 'edit');
   };
 
-  const handleInputChange = (field: keyof CornellNote, value: string) => {
-    setCornellNote(prev => ({ ...prev, [field]: value }));
+  const handleTitleChange = (value: string) => {
+    setCornellNote(prev => ({ ...prev, title: value }));
   };
-  
-  const handleMainNotesChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newValue = event.target.value;
-    handleInputChange('mainNotes', newValue);
+
+  const handleContentChange = (field: CornellNoteEditableFields, event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = event.target.value;
+    setCornellNote(prev => ({ ...prev, [field]: value }));
 
     const cursorPos = event.target.selectionStart;
-    const textBeforeCursor = newValue.substring(0, cursorPos);
+    const textBeforeCursor = value.substring(0, cursorPos);
     const match = textBeforeCursor.match(/\/(\S*)$/);
 
     if (match) {
+      setActiveEditorForSlashCommand(field);
       setIsSlashPaletteOpen(true);
       setSlashQuery(match[1]);
       setSlashTriggerPosition(cursorPos);
     } else {
       setIsSlashPaletteOpen(false);
       setSlashQuery('');
+      // Do not reset activeEditorForSlashCommand here, only on palette close or selection
     }
   };
-
+  
   const handleCommandSelect = (command: Command) => {
-    if (!mainNotesTextareaRef.current) return;
+    if (!activeEditorForSlashCommand) return;
 
-    const currentValue = mainNotesTextareaRef.current.value;
+    let targetTextareaRef: React.RefObject<HTMLTextAreaElement> | null = null;
+    switch (activeEditorForSlashCommand) {
+      case 'cues': targetTextareaRef = cuesTextareaRef; break;
+      case 'mainNotes': targetTextareaRef = mainNotesTextareaRef; break;
+      case 'summary': targetTextareaRef = summaryTextareaRef; break;
+    }
+
+    if (!targetTextareaRef?.current) return;
+    
+    const textarea = targetTextareaRef.current;
+    const currentValue = textarea.value;
     const queryLengthWithSlash = 1 + slashQuery.length;
     const startOfSlashCommand = slashTriggerPosition - queryLengthWithSlash;
 
@@ -156,44 +194,50 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
     const textAfterSlashCommand = currentValue.substring(slashTriggerPosition);
 
     const newText = textBeforeSlashCommand + actionToInsert + textAfterSlashCommand;
-    handleInputChange('mainNotes', newText);
+    setCornellNote(prev => ({ ...prev, [activeEditorForSlashCommand]: newText }));
+    
     setIsSlashPaletteOpen(false);
     setSlashQuery('');
 
     const newCursorPos = startOfSlashCommand + actionToInsert.length;
     setTimeout(() => {
-      if (mainNotesTextareaRef.current) {
-        mainNotesTextareaRef.current.focus();
-        mainNotesTextareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
+      if (textarea) {
+        textarea.focus();
+        textarea.setSelectionRange(newCursorPos, newCursorPos);
       }
     }, 0);
+    setActiveEditorForSlashCommand(null);
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // This keydown is specifically for the mainNotesTextarea for --- handling
+    // Escape for slash palette can be handled more globally if needed or remain here
     const textarea = mainNotesTextareaRef.current;
-    if (!textarea) return;
+    if (!textarea || event.currentTarget !== textarea) return;
   
     if (event.key === 'Enter') {
       const cursorPos = textarea.selectionStart;
       const currentText = textarea.value;
       
       const lineStart = currentText.lastIndexOf('\n', cursorPos - 1) + 1;
-      const currentLineText = currentText.substring(lineStart, cursorPos).trim();
-      const lineAfterCursor = currentText.substring(cursorPos).split('\n')[0].trim();
-      const fullLineContent = (currentLineText + lineAfterCursor).trim();
+      const currentLineText = currentText.substring(lineStart, cursorPos).trim(); // Text before cursor on the current line
+      const lineAfterCursor = currentText.substring(cursorPos).split('\n')[0].trim(); // Text after cursor on the same line
+      const fullLineContent = (currentLineText + lineAfterCursor).trim(); // Entire logical line content
 
 
       if (fullLineContent === '---') {
-          event.preventDefault();
+          event.preventDefault(); // Prevent default Enter behavior
           const textBeforeCurrentLine = currentText.substring(0, lineStart);
-          let textAfterCurrentLine = currentText.substring(cursorPos);
-          const firstCharAfterCursorOnLine = currentText.substring(cursorPos, currentText.indexOf('\n', cursorPos) === -1 ? currentText.length : currentText.indexOf('\n', cursorPos));
           
-          textAfterCurrentLine = currentText.substring(lineStart + fullLineContent.length + (currentText.indexOf('\n', lineStart) === lineStart + fullLineContent.length ? 1: (firstCharAfterCursorOnLine.length > 0 ? 0 : -1 ) ) );
-
-
+          // Determine text after the '---' line, handling cases where it's the last line
+          let textAfterCurrentLine = "";
+          const nextLineBreakPos = currentText.indexOf('\n', lineStart + fullLineContent.length);
+          if (nextLineBreakPos !== -1) {
+            textAfterCurrentLine = currentText.substring(nextLineBreakPos + 1);
+          }
+          
           const newText = `${textBeforeCurrentLine}---\n${textAfterCurrentLine}`;
-          handleInputChange('mainNotes', newText);
+          setCornellNote(prev => ({ ...prev, mainNotes: newText }));
   
           const newCursorPos = `${textBeforeCurrentLine}---\n`.length;
           setTimeout(() => {
@@ -209,8 +253,10 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
     if (isSlashPaletteOpen) {
       if (event.key === 'Escape') {
         setIsSlashPaletteOpen(false);
+        setActiveEditorForSlashCommand(null);
         event.preventDefault();
       }
+      // Add KeyDown, KeyUp, Enter for palette navigation if needed
     }
   };
 
@@ -370,13 +416,15 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
 
   const RenderSection = ({ content, placeholder }: { content: string; placeholder: string }) => {
     let isDarkBg = false;
-    const match = themeTextColor.match(/hsl\(\s*\d+\s+\d+%\s+(\d+)%\s*\)/);
-    if (match && match[1]) {
-      const lightness = parseInt(match[1], 10);
-      if (lightness > 60) { 
-        isDarkBg = true;
-      }
+    // Updated to match the HSL format from theme more reliably
+    const match = themeTextColor.match(/hsl\(\s*(\d+)\s+(\d+%)\s+(\d+%)\s*\)/);
+    if (match && match[3]) { // Check lightness (L in HSL)
+        const lightness = parseInt(match[3].replace('%',''), 10);
+        if (lightness > 60) { // Light text typically means dark background
+            isDarkBg = true;
+        }
     }
+
 
     if (organizeViewMode === 'preview') {
       return (
@@ -413,7 +461,7 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
         <Input
           placeholder={t('cornellNotes.titlePlaceholder')}
           value={cornellNote.title}
-          onChange={(e) => handleInputChange('title', e.target.value)}
+          onChange={(e) => handleTitleChange(e.target.value)}
           className="text-xl font-semibold border-none focus-visible:ring-0 focus-visible:ring-offset-0 flex-grow max-w-md mr-4 bg-transparent theme-placeholder"
           style={{ color: themeTextColor, ...placeholderStyle }}
           aria-label={t('cornellNotes.titlePlaceholder')}
@@ -462,9 +510,11 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
           <div className="flex-grow relative">
             {organizeViewMode === 'edit' ? (
               <Textarea
+                ref={cuesTextareaRef}
                 placeholder={t('cornellNotes.cuesPlaceholder')}
                 value={cornellNote.cues}
-                onChange={(e) => handleInputChange('cues', e.target.value)}
+                onChange={(e) => handleContentChange('cues', e)}
+                onKeyDown={(e) => { if (isSlashPaletteOpen && e.key === 'Escape') { setIsSlashPaletteOpen(false); setActiveEditorForSlashCommand(null); e.preventDefault();}}}
                 className="w-full h-full resize-none border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-3 text-sm leading-relaxed bg-transparent theme-placeholder"
                 style={{ color: themeTextColor, ...placeholderStyle }}
                 aria-label={t('cornellNotes.cuesPlaceholder')}
@@ -484,8 +534,8 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
                   ref={mainNotesTextareaRef}
                   placeholder={t('cornellNotes.mainNotesPlaceholder')}
                   value={cornellNote.mainNotes}
-                  onChange={handleMainNotesChange}
-                  onKeyDown={handleKeyDown}
+                  onChange={(e) => handleContentChange('mainNotes', e)}
+                  onKeyDown={handleKeyDown} // Keep specific onKeyDown for mainNotes if --- logic is only here
                   className="w-full h-full resize-none border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-3 text-sm leading-relaxed bg-transparent theme-placeholder"
                   style={{ color: themeTextColor, ...placeholderStyle }}
                   aria-label={t('cornellNotes.mainNotesPlaceholder')}
@@ -493,10 +543,13 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
               ) : (
                 <RenderSection content={cornellNote.mainNotes} placeholder={t('cornellNotes.mainNotesPlaceholder')} />
               )}
-              {popoverAnchorRef.current && mainNotesTextareaRef.current && organizeViewMode === 'edit' && (
+              {popoverAnchorRef.current && organizeViewMode === 'edit' && (
                 <SlashCommandPalette
                   isOpen={isSlashPaletteOpen}
-                  onOpenChange={setIsSlashPaletteOpen}
+                  onOpenChange={(isOpen) => {
+                    setIsSlashPaletteOpen(isOpen);
+                    if (!isOpen) setActiveEditorForSlashCommand(null);
+                  }}
                   commands={availableCommands}
                   onCommandSelect={handleCommandSelect}
                   query={slashQuery}
@@ -511,9 +564,11 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
             <div className="flex-grow relative">
             {organizeViewMode === 'edit' ? (
               <Textarea
+                ref={summaryTextareaRef}
                 placeholder={t('cornellNotes.summaryPlaceholder')}
                 value={cornellNote.summary}
-                onChange={(e) => handleInputChange('summary', e.target.value)}
+                onChange={(e) => handleContentChange('summary', e)}
+                onKeyDown={(e) => { if (isSlashPaletteOpen && e.key === 'Escape') { setIsSlashPaletteOpen(false); setActiveEditorForSlashCommand(null); e.preventDefault();}}}
                 className="w-full h-full resize-none border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-3 text-sm leading-relaxed bg-transparent theme-placeholder"
                 style={{ color: themeTextColor, ...placeholderStyle }}
                 aria-label={t('cornellNotes.summaryPlaceholder')}
@@ -605,3 +660,5 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
     </div>
   );
 }
+
+    
