@@ -742,6 +742,23 @@ export default function WhiteboardPage() {
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={toggleFullscreen}
+                aria-label={isFullscreen ? t('whiteboard.exitFullscreenTooltip') : t('whiteboard.enterFullscreenTooltip')}
+              >
+                {isFullscreen ? <Minimize className="h-5 w-5" /> : <Expand className="h-5 w-5" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{isFullscreen ? t('whiteboard.exitFullscreenTooltip') : t('whiteboard.enterFullscreenTooltip')}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="icon" aria-label={t('themeSwitcher.title')}>
@@ -856,21 +873,6 @@ export default function WhiteboardPage() {
                   </div>
                 </PopoverContent>
               </Popover>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={toggleFullscreen}
-                    aria-label={isFullscreen ? t('whiteboard.exitFullscreenTooltip') : t('whiteboard.enterFullscreenTooltip')}
-                  >
-                    {isFullscreen ? <Minimize className="h-5 w-5" /> : <Expand className="h-5 w-5" />}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{isFullscreen ? t('whiteboard.exitFullscreenTooltip') : t('whiteboard.enterFullscreenTooltip')}</p>
-                </TooltipContent>
-              </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -1032,3 +1034,4 @@ export default function WhiteboardPage() {
     </div>
   );
 }
+
