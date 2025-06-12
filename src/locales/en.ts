@@ -5,6 +5,20 @@ export default {
   header: {
     title: 'NoteCanvas Whiteboard',
   },
+  appModes: {
+    draft: 'Draft Mode',
+    organize: 'Organize Mode',
+    switchToOrganize: 'Switch to Organize Mode',
+    switchToDraft: 'Switch to Draft Mode',
+    organizeTitle: 'Text Organizer',
+  },
+  organizeMode: {
+    editorTitle: 'Note Editor',
+    editorDescription: 'Write and organize your thoughts. Use the AI Assistant for suggestions.',
+    placeholder: 'Start typing your notes here...',
+    suggestionsDescription: 'Review the AI-generated suggestions below.',
+    saveNote: 'Save Note', // Not used currently due to autosave
+  },
   languageSwitcher: {
     english: 'English',
     chinese: '中文',

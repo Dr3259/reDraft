@@ -5,6 +5,20 @@ export default {
   header: {
     title: '笔记画布 白板',
   },
+  appModes: {
+    draft: '草稿本模式',
+    organize: '整理模式',
+    switchToOrganize: '切换到整理模式',
+    switchToDraft: '切换到草稿本模式',
+    organizeTitle: '文本整理器',
+  },
+  organizeMode: {
+    editorTitle: '笔记编辑器',
+    editorDescription: '在此撰写和整理您的想法。使用 AI 助手获取建议。',
+    placeholder: '在此开始输入您的笔记...',
+    suggestionsDescription: '查看下方 AI 生成的建议。',
+    saveNote: '保存笔记', // 当前未使用，因为是自动保存
+  },
   languageSwitcher: {
     english: '英文',
     chinese: '中文',

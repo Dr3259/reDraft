@@ -6,8 +6,7 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useI18n, useCurrentLocale } from '@/locales/client';
-import { LanguageSwitcher } from '@/components/language-switcher';
-import { Eraser, Trash2, Undo2, FolderClock, Palette, Trash, Expand, Minimize, FileSignature, FileDown, PenLine } from 'lucide-react';
+import { Eraser, Trash2, Undo2, FolderClock, Palette, Trash, Expand, Minimize, FileSignature, FileDown, PenLine, Paintbrush, Notebook } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -33,6 +32,7 @@ import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { OrganizeModeView } from '@/components/organize-mode-view';
 
 const ERASER_WIDTH = 20;
 const MAX_HISTORY_STEPS = 30;
@@ -40,6 +40,7 @@ const LOCAL_STORAGE_DRAFTS_KEY = 'whiteboardDrafts_v2';
 const LOCAL_STORAGE_THEME_KEY = 'whiteboardTheme_v1';
 
 type CanvasTheme = 'whiteboard' | 'blackboard' | 'eyecare' | 'reading';
+type AppMode = 'draft' | 'organize';
 
 const themeClasses: Record<CanvasTheme, string> = {
   whiteboard: 'theme-whiteboard',
@@ -68,6 +69,8 @@ export default function WhiteboardPage() {
   const locale = useCurrentLocale();
   const { toast, dismiss: dismissToast } = useToast();
 
+  const [currentAppMode, setCurrentAppMode] = useState<AppMode>('draft');
+
   const mainContainerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -93,7 +96,6 @@ export default function WhiteboardPage() {
 
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Refs for drawing properties to be used in stable callbacks
   const currentToolRef = useRef(currentTool);
   const userSelectedPenColorRef = useRef(userSelectedPenColor);
   const effectivePenColorRef = useRef(effectivePenColor);
@@ -105,7 +107,6 @@ export default function WhiteboardPage() {
   useEffect(() => { effectivePenColorRef.current = effectivePenColor; }, [effectivePenColor]);
   useEffect(() => { penWidthRef.current = penWidth; }, [penWidth]);
   useEffect(() => { effectiveEraserColorRef.current = effectiveEraserColor; }, [effectiveEraserColor]);
-
 
   useEffect(() => {
     const savedTheme = localStorage.getItem(LOCAL_STORAGE_THEME_KEY) as CanvasTheme | null;
@@ -129,23 +130,26 @@ export default function WhiteboardPage() {
           setEffectiveEraserColor(newBgColor);
           setEffectivePenColor(themeDefaultPenColor);
 
-          const canvas = canvasRef.current;
-          const context = canvas?.getContext('2d');
-          if (!canvas || !context) return;
+          if (currentAppMode === 'draft') {
+            const canvas = canvasRef.current;
+            const context = canvas?.getContext('2d');
+            if (!canvas || !context) return;
 
-          context.fillStyle = newBgColor;
-          context.fillRect(0, 0, canvas.width, canvas.height);
+            context.fillStyle = newBgColor;
+            context.fillRect(0, 0, canvas.width, canvas.height);
 
-          if (canvas.width > 0 && canvas.height > 0) {
-            const initialImageData = context.getImageData(0, 0, canvas.width, canvas.height);
-            setHistory([initialImageData]);
+            if (canvas.width > 0 && canvas.height > 0) {
+              const initialImageData = context.getImageData(0, 0, canvas.width, canvas.height);
+              setHistory([initialImageData]);
+            }
           }
         }
       }, 0);
     }
-  }, [currentTheme]);
+  }, [currentTheme, currentAppMode]);
 
   useEffect(() => {
+    if (currentAppMode !== 'draft') return;
     const canvas = canvasRef.current;
     const context = canvas?.getContext('2d');
     if (!context) return;
@@ -161,10 +165,10 @@ export default function WhiteboardPage() {
       context.strokeStyle = effectiveEraserColor;
       context.lineWidth = ERASER_WIDTH;
     }
-  }, [currentTool, penWidth, userSelectedPenColor, effectivePenColor, effectiveEraserColor]);
-
+  }, [currentTool, penWidth, userSelectedPenColor, effectivePenColor, effectiveEraserColor, currentAppMode]);
 
   const saveCanvasState = useCallback(() => {
+    if (currentAppMode !== 'draft') return;
     const canvas = canvasRef.current;
     const context = canvas?.getContext('2d');
     if (!canvas || !context || canvas.width === 0 || canvas.height === 0) return;
@@ -180,10 +184,11 @@ export default function WhiteboardPage() {
     } catch (e) {
       console.error("Failed to save canvas state:", e);
     }
-  }, [canvasRef]);
-
+  }, [canvasRef, currentAppMode]);
 
   useEffect(() => {
+    if (currentAppMode !== 'draft') return;
+    
     const canvas = canvasRef.current;
     if (!canvas) return;
     const context = canvas.getContext('2d');
@@ -217,10 +222,10 @@ export default function WhiteboardPage() {
     };
     loadDraftsFromStorage();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); 
-
+  }, [currentAppMode]); 
 
   const memoizedResizeCallback = useCallback((entries: ResizeObserverEntry[]) => {
+    if (currentAppMode !== 'draft') return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const context = canvas.getContext('2d');
@@ -320,9 +325,10 @@ export default function WhiteboardPage() {
         }
         if (width > 0 && height > 0) saveCanvasState();
     }
-  }, [canvasRef, saveCanvasState]); // saveCanvasState is memoized, canvasRef is stable
+  }, [canvasRef, saveCanvasState, currentAppMode]); 
 
   useEffect(() => {
+    if (currentAppMode !== 'draft') return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const parentEl = canvas.parentElement;
@@ -332,13 +338,12 @@ export default function WhiteboardPage() {
     observer.observe(parentEl);
 
     return () => {
-      if (parentEl) { // Ensure parentEl still exists for unobserve
+      if (parentEl) { 
         observer.unobserve(parentEl);
       }
-      observer.disconnect(); // Also good practice to disconnect
+      observer.disconnect(); 
     };
-  }, [canvasRef, memoizedResizeCallback]);
-
+  }, [canvasRef, memoizedResizeCallback, currentAppMode]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -349,7 +354,6 @@ export default function WhiteboardPage() {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
   }, []);
-
 
   const getMousePosition = (event: React.MouseEvent<HTMLCanvasElement>): { x: number; y: number } => {
     const canvas = canvasRef.current;
@@ -418,10 +422,11 @@ export default function WhiteboardPage() {
   };
 
   useEffect(() => {
+    if (currentAppMode !== 'draft') return;
     if (showTextInput && textInputRef.current) {
       textInputRef.current.focus();
     }
-  }, [showTextInput]);
+  }, [showTextInput, currentAppMode]);
 
   const handleTextInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setTextInputValue(event.target.value);
@@ -707,6 +712,10 @@ export default function WhiteboardPage() {
     }
   };
 
+  const handleToggleMode = () => {
+    setCurrentAppMode(prevMode => prevMode === 'draft' ? 'organize' : 'draft');
+  };
+
   const undoDisabled = history.length <= 1;
   const finalPenColor = userSelectedPenColor || effectivePenColor;
 
@@ -716,6 +725,23 @@ export default function WhiteboardPage() {
       className={cn("w-screen h-screen relative overflow-hidden flex flex-col app-canvas-container", themeClasses[currentTheme])}
       >
       <div className="absolute top-4 right-4 z-10 flex items-center space-x-2">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleToggleMode}
+                aria-label={currentAppMode === 'draft' ? t('appModes.switchToOrganize') : t('appModes.switchToDraft')}
+              >
+                {currentAppMode === 'draft' ? <Notebook className="h-5 w-5" /> : <Paintbrush className="h-5 w-5" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{currentAppMode === 'draft' ? t('appModes.switchToOrganize') : t('appModes.switchToDraft')}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="icon" aria-label={t('themeSwitcher.title')}>
@@ -733,268 +759,276 @@ export default function WhiteboardPage() {
             </DropdownMenuRadioGroup>
           </DropdownMenuContent>
         </DropdownMenu>
-        <LanguageSwitcher />
       </div>
-      <div className="flex-grow relative">
-        <canvas
-          ref={canvasRef}
-          onMouseDown={startDrawing}
-          onMouseMove={draw}
-          onMouseUp={stopDrawing}
-          onMouseLeave={stopDrawing}
-          onContextMenu={handleContextMenu}
-          className="w-full h-full cursor-crosshair block"
-          aria-label={t('whiteboard.canvasLabel')}
-          style={{ backgroundColor: effectiveEraserColor }}
-        />
-      </div>
-      {showTextInput && (
-        <Input
-          ref={textInputRef}
-          type="text"
-          value={textInputValue}
-          onChange={handleTextInputChange}
-          onBlur={handleTextInputBlur}
-          onKeyDown={handleTextInputKeyDown}
-          className="absolute p-1 border border-gray-400 bg-white shadow-md text-sm z-10"
-          style={{
-            left: `${textInputPosition.x}px`,
-            top: `${textInputPosition.y}px`,
-            minWidth: '100px',
-            maxWidth: '300px',
-            color: finalPenColor,
-            backgroundColor: effectiveEraserColor,
-          }}
-          placeholder={t('whiteboard.textInputPlaceholder')}
-        />
-      )}
-      <TooltipProvider>
-        <div className="absolute bottom-4 right-4 z-10 flex gap-2">
-           <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="icon" aria-label={t('penSettings.title')}>
-                <PenLine className="h-5 w-5" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-64 p-4">
-              <div className="grid gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="pen-width" className="text-sm font-medium leading-none">
-                    {t('penSettings.width')} ({penWidth}px)
-                  </Label>
-                  <Slider
-                    id="pen-width"
-                    min={1}
-                    max={20}
-                    step={1}
-                    value={[penWidth]}
-                    onValueChange={(value) => setPenWidth(value[0])}
-                    className="w-full"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium leading-none">{t('penSettings.color')}</Label>
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setUserSelectedPenColor(null)}
-                      className={cn(!userSelectedPenColor && "ring-2 ring-primary")}
-                    >
-                      {t('penSettings.themeColor')}
-                    </Button>
-                    {predefinedPenColors.map((color) => (
-                      <Tooltip key={color.name}>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className={cn(
-                              "h-6 w-6 rounded-full border-2",
-                              userSelectedPenColor === color.value && "ring-2 ring-offset-2 ring-primary"
-                            )}
-                            style={{ backgroundColor: color.value }}
-                            onClick={() => setUserSelectedPenColor(color.value)}
-                            aria-label={color.name}
-                          />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{t(`penSettings.colors.${color.name.toLowerCase()}` as any)}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={toggleFullscreen}
-                aria-label={isFullscreen ? t('whiteboard.exitFullscreenTooltip') : t('whiteboard.enterFullscreenTooltip')}
-              >
-                {isFullscreen ? <Minimize className="h-5 w-5" /> : <Expand className="h-5 w-5" />}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{isFullscreen ? t('whiteboard.exitFullscreenTooltip') : t('whiteboard.enterFullscreenTooltip')}</p>
-            </TooltipContent>
-          </Tooltip>
-           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setIsDraftsDialogOpen(true)}
-                aria-label={t('whiteboard.manageDraftsTooltip')}
-              >
-                <FolderClock className="h-5 w-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{t('whiteboard.manageDraftsTooltip')}</p>
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleSaveCanvas('saveDraft')}
-                aria-label={t('whiteboard.saveDraftTooltip')}
-              >
-                <FileSignature className="h-5 w-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{t('whiteboard.saveDraftTooltip')}</p>
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleSaveCanvas('downloadAsPng')}
-                aria-label={t('whiteboard.saveAsTooltip')}
-              >
-                <FileDown className="h-5 w-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{t('whiteboard.saveAsTooltip')}</p>
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleClearCanvas}
-                aria-label={t('whiteboard.clearCanvasTooltip')}
-              >
-                <Trash2 className="h-5 w-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{t('whiteboard.clearCanvasTooltip')}</p>
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleUndo}
-                disabled={undoDisabled}
-                aria-label={t('whiteboard.undoTooltip')}
-              >
-                <Undo2 className="h-5 w-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{t('whiteboard.undoTooltip')}</p>
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-               <Button
-                variant={currentTool === 'eraser' ? 'default' : 'outline'}
-                size="icon"
-                onClick={handleToggleEraser}
-                aria-label={t('whiteboard.eraserTooltip')}
-              >
-                <Eraser className="h-5 w-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{t('whiteboard.eraserTooltip')}</p>
-            </TooltipContent>
-          </Tooltip>
-        </div>
-      </TooltipProvider>
 
-      <Dialog open={isDraftsDialogOpen} onOpenChange={setIsDraftsDialogOpen}>
-        <DialogContent className="sm:max-w-[525px]">
-          <DialogHeader>
-            <DialogTitle>{t('whiteboard.draftsDialogTitle')}</DialogTitle>
-            <DialogDescription>
-              {drafts.length > 0 ? t('whiteboard.draftsDialogDescription') : t('whiteboard.noDraftsMessage')}
-            </DialogDescription>
-          </DialogHeader>
-          {drafts.length > 0 && (
-            <ScrollArea className="h-[300px] w-full rounded-md border p-4">
-              <div className="space-y-4">
-                {drafts.map((draft) => (
-                  <div key={draft.id} className="flex items-center justify-between p-2 rounded-md hover:bg-accent space-x-3">
-                    <div className="flex items-center space-x-3 flex-grow">
-                      <img
-                        src={draft.dataUrl}
-                        alt={t('whiteboard.draftThumbnailAlt', { draftName: draft.name })}
-                        className="w-20 h-16 rounded-md border object-contain bg-white"
-                        data-ai-hint="drawing preview"
+      {currentAppMode === 'draft' && (
+        <>
+          <div className="flex-grow relative">
+            <canvas
+              ref={canvasRef}
+              onMouseDown={startDrawing}
+              onMouseMove={draw}
+              onMouseUp={stopDrawing}
+              onMouseLeave={stopDrawing}
+              onContextMenu={handleContextMenu}
+              className="w-full h-full cursor-crosshair block"
+              aria-label={t('whiteboard.canvasLabel')}
+              style={{ backgroundColor: effectiveEraserColor }}
+            />
+          </div>
+          {showTextInput && (
+            <Input
+              ref={textInputRef}
+              type="text"
+              value={textInputValue}
+              onChange={handleTextInputChange}
+              onBlur={handleTextInputBlur}
+              onKeyDown={handleTextInputKeyDown}
+              className="absolute p-1 border border-gray-400 bg-white shadow-md text-sm z-10"
+              style={{
+                left: `${textInputPosition.x}px`,
+                top: `${textInputPosition.y}px`,
+                minWidth: '100px',
+                maxWidth: '300px',
+                color: finalPenColor,
+                backgroundColor: effectiveEraserColor,
+              }}
+              placeholder={t('whiteboard.textInputPlaceholder')}
+            />
+          )}
+          <TooltipProvider>
+            <div className="absolute bottom-4 right-4 z-10 flex gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="icon" aria-label={t('penSettings.title')}>
+                    <PenLine className="h-5 w-5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-4">
+                  <div className="grid gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="pen-width" className="text-sm font-medium leading-none">
+                        {t('penSettings.width')} ({penWidth}px)
+                      </Label>
+                      <Slider
+                        id="pen-width"
+                        min={1}
+                        max={20}
+                        step={1}
+                        value={[penWidth]}
+                        onValueChange={(value) => setPenWidth(value[0])}
+                        className="w-full"
                       />
-                      <div>
-                        <p className="font-medium">{draft.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(draft.createdAt).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' })}
-                        </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium leading-none">{t('penSettings.color')}</Label>
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setUserSelectedPenColor(null)}
+                          className={cn(!userSelectedPenColor && "ring-2 ring-primary")}
+                        >
+                          {t('penSettings.themeColor')}
+                        </Button>
+                        {predefinedPenColors.map((color) => (
+                          <Tooltip key={color.name}>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className={cn(
+                                  "h-6 w-6 rounded-full border-2",
+                                  userSelectedPenColor === color.value && "ring-2 ring-offset-2 ring-primary"
+                                )}
+                                style={{ backgroundColor: color.value }}
+                                onClick={() => setUserSelectedPenColor(color.value)}
+                                aria-label={color.name}
+                              />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{t(`penSettings.colors.${color.name.toLowerCase()}` as any)}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ))}
                       </div>
                     </div>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="sm" onClick={() => handleLoadSpecificDraft(draft.id)}>
-                        {t('whiteboard.loadDraftButton')}
-                      </Button>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleDeleteDraft(draft.id)}>
-                              <Trash className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{t('whiteboard.deleteDraftTooltip')}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
                   </div>
-                ))}
-              </div>
-            </ScrollArea>
-          )}
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">{t('whiteboard.closeDialogButton')}</Button>
-            </DialogClose>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                </PopoverContent>
+              </Popover>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={toggleFullscreen}
+                    aria-label={isFullscreen ? t('whiteboard.exitFullscreenTooltip') : t('whiteboard.enterFullscreenTooltip')}
+                  >
+                    {isFullscreen ? <Minimize className="h-5 w-5" /> : <Expand className="h-5 w-5" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{isFullscreen ? t('whiteboard.exitFullscreenTooltip') : t('whiteboard.enterFullscreenTooltip')}</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setIsDraftsDialogOpen(true)}
+                    aria-label={t('whiteboard.manageDraftsTooltip')}
+                  >
+                    <FolderClock className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{t('whiteboard.manageDraftsTooltip')}</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleSaveCanvas('saveDraft')}
+                    aria-label={t('whiteboard.saveDraftTooltip')}
+                  >
+                    <FileSignature className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{t('whiteboard.saveDraftTooltip')}</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleSaveCanvas('downloadAsPng')}
+                    aria-label={t('whiteboard.saveAsTooltip')}
+                  >
+                    <FileDown className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{t('whiteboard.saveAsTooltip')}</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleClearCanvas}
+                    aria-label={t('whiteboard.clearCanvasTooltip')}
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{t('whiteboard.clearCanvasTooltip')}</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleUndo}
+                    disabled={undoDisabled}
+                    aria-label={t('whiteboard.undoTooltip')}
+                  >
+                    <Undo2 className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{t('whiteboard.undoTooltip')}</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={currentTool === 'eraser' ? 'default' : 'outline'}
+                    size="icon"
+                    onClick={handleToggleEraser}
+                    aria-label={t('whiteboard.eraserTooltip')}
+                  >
+                    <Eraser className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{t('whiteboard.eraserTooltip')}</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
+        </>
+      )}
+
+      {currentAppMode === 'organize' && (
+         <OrganizeModeView />
+      )}
+      
+      {currentAppMode === 'draft' && (
+        <Dialog open={isDraftsDialogOpen} onOpenChange={setIsDraftsDialogOpen}>
+          <DialogContent className="sm:max-w-[525px]">
+            <DialogHeader>
+              <DialogTitle>{t('whiteboard.draftsDialogTitle')}</DialogTitle>
+              <DialogDescription>
+                {drafts.length > 0 ? t('whiteboard.draftsDialogDescription') : t('whiteboard.noDraftsMessage')}
+              </DialogDescription>
+            </DialogHeader>
+            {drafts.length > 0 && (
+              <ScrollArea className="h-[300px] w-full rounded-md border p-4">
+                <div className="space-y-4">
+                  {drafts.map((draft) => (
+                    <div key={draft.id} className="flex items-center justify-between p-2 rounded-md hover:bg-accent space-x-3">
+                      <div className="flex items-center space-x-3 flex-grow">
+                        <img
+                          src={draft.dataUrl}
+                          alt={t('whiteboard.draftThumbnailAlt', { draftName: draft.name })}
+                          className="w-20 h-16 rounded-md border object-contain bg-white"
+                          data-ai-hint="drawing preview"
+                        />
+                        <div>
+                          <p className="font-medium">{draft.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(draft.createdAt).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' })}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button variant="outline" size="sm" onClick={() => handleLoadSpecificDraft(draft.id)}>
+                          {t('whiteboard.loadDraftButton')}
+                        </Button>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleDeleteDraft(draft.id)}>
+                                <Trash className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{t('whiteboard.deleteDraftTooltip')}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">{t('whiteboard.closeDialogButton')}</Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
-
-    
