@@ -13,9 +13,9 @@ export default {
     organizeTitle: '笔记整理器',
   },
   organizeMode: {
-    placeholder: '在此开始输入您的笔记... 输入 / 获取命令。',
-    switchToPreview: '切换到预览模式',
-    switchToEdit: '切换到编辑模式',
+    placeholder: '在此开始输入您的笔记...', // 通用占位符，TipTap 将使用特定的
+    switchToPreview: '切换到预览模式', // 此项将被移除
+    switchToEdit: '切换到编辑模式', // 此项将被移除
   },
   cornellNotes: {
     titlePlaceholder: '无标题笔记 (主题/日期)',
@@ -47,12 +47,13 @@ export default {
     draftSaveErrorDescription: '无法保存笔记草稿。',
     draftDeleteErrorTitle: '删除错误',
     draftDeleteErrorDescription: '无法删除笔记草稿。',
-    emptyDraftTitle: '笔记为空', // 同上，如果标题必填，此条可能意义不大
-    emptyDraftDescription: '笔记中没有内容可以保存为草稿。', // 同上
+    emptyDraftTitle: '笔记为空', 
+    emptyDraftDescription: '笔记中没有内容可以保存为草稿。', 
     titleRequiredErrorTitle: '需要标题',
     titleRequiredErrorDescription: '保存前请输入笔记标题。',
-    migratedOldNoteTitle: '旧笔记已加载',
+    migratedOldNoteTitle: '找到旧笔记数据',
     migratedOldNoteDescription: '您之前自动保存的笔记已加载。您可以将其保存为一个新的命名草稿。',
+    migratedOldNoteDescriptionNewFormat: '找到旧版笔记草稿。它们已被加载并以新格式重新保存。旧草稿中的 Markdown 内容将显示为纯文本，如有需要请重新应用格式。',
   },
   languageSwitcher: {
     english: '英文',
@@ -123,11 +124,12 @@ export default {
   },
   export: {
     title: '导出笔记',
-    txt: '导出为 .txt',
-    md: '导出为 .md',
+    txt: '导出为 .txt (纯文本)',
+    md: '导出为 .md (HTML 内容)',
     pdf: '导出为 .pdf',
     emptyNoteErrorTitle: '笔记为空',
     emptyNoteErrorDescription: '没有可导出的内容。',
+    mdContainsHtmlWarning: '文件包含 HTML 内容。',
   },
   toast: {
     exportedAs: '已导出为 {format}',
@@ -139,7 +141,7 @@ export default {
   footer: {
     copyright: '© {year} 笔记画布. 版权所有.',
   },
-  slashCommands: {
+  slashCommands: { // 这些在康奈尔笔记中暂时未使用
     heading1: '一级标题',
     heading2: '二级标题',
     heading3: '三级标题',

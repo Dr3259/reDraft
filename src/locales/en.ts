@@ -13,9 +13,9 @@ export default {
     organizeTitle: 'Note Organizer',
   },
   organizeMode: {
-    placeholder: 'Start typing your notes here... Type / for commands.',
-    switchToPreview: 'Switch to Preview Mode',
-    switchToEdit: 'Switch to Edit Mode',
+    placeholder: 'Start typing your notes here...', // General placeholder, TipTap will use specific ones
+    switchToPreview: 'Switch to Preview Mode', // This will be removed
+    switchToEdit: 'Switch to Edit Mode', // This will be removed
   },
   cornellNotes: {
     titlePlaceholder: 'Untitled Note (Topic/Date)',
@@ -47,12 +47,14 @@ export default {
     draftSaveErrorDescription: 'Could not save note draft.',
     draftDeleteErrorTitle: 'Delete Error',
     draftDeleteErrorDescription: 'Could not delete note draft.',
-    emptyDraftTitle: 'Empty Note', // This might be less relevant now if title is mandatory
-    emptyDraftDescription: 'There is no content in the note to save as a draft.', // Same as above
+    emptyDraftTitle: 'Empty Note', 
+    emptyDraftDescription: 'There is no content in the note to save as a draft.', 
     titleRequiredErrorTitle: 'Title Required',
     titleRequiredErrorDescription: 'Please enter a title for your note before saving.',
-    migratedOldNoteTitle: 'Previous Note Loaded',
+    migratedOldNoteTitle: 'Previous Note Data Found',
     migratedOldNoteDescription: 'Your previously auto-saved note has been loaded. You can save it as a named draft now.',
+    migratedOldNoteDescriptionNewFormat: 'Found older note drafts. They have been loaded and re-saved in the new format. Markdown content from old drafts will appear as plain text; please re-apply formatting if needed.',
+
   },
   languageSwitcher: {
     english: 'English',
@@ -123,11 +125,12 @@ export default {
   },
   export: {
     title: 'Export Note',
-    txt: 'Export as .txt',
-    md: 'Export as .md',
+    txt: 'Export as .txt (Plain Text)',
+    md: 'Export as .md (HTML Content)',
     pdf: 'Export as .pdf',
     emptyNoteErrorTitle: 'Empty Note',
     emptyNoteErrorDescription: 'There is no content to export.',
+    mdContainsHtmlWarning: 'File contains HTML content.',
   },
   toast: {
     exportedAs: 'Exported as {format}',
@@ -139,7 +142,7 @@ export default {
   footer: {
     copyright: '© {year} NoteCanvas. All rights reserved.',
   },
-  slashCommands: {
+  slashCommands: { // These are temporarily unused in Cornell Notes
     heading1: 'Heading 1',
     heading2: 'Heading 2',
     heading3: 'Heading 3',

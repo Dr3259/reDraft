@@ -117,4 +117,47 @@ body {
   .app-canvas-container {
     background-color: hsl(var(--canvas-bg-hsl));
   }
+
+  /* TipTap specific styles */
+  .ProseMirror {
+    @apply h-full; /* Ensure TipTap editor fills its container */
+  }
+
+  .ProseMirror:focus {
+    outline: none;
+  }
+  
+  /* Placeholder styling for TipTap */
+  .ProseMirror p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    color: hsl(var(--muted-foreground)); /* Use muted foreground for placeholder */
+    opacity: 0.6;
+    pointer-events: none;
+    height: 0;
+  }
+
+  /* Ensure prose styles from @tailwindcss/typography apply correctly in TipTap */
+  .ProseMirror {
+    /* You can add more specific prose overrides here if needed */
+  }
+  .ProseMirror ul,
+  .ProseMirror ol {
+    @apply list-inside;
+  }
+  .ProseMirror li > p { /* TipTap often wraps list item content in <p> */
+    @apply m-0 inline; 
+  }
+  .ProseMirror pre {
+    @apply bg-muted text-muted-foreground rounded-md p-2 text-sm;
+  }
+  .ProseMirror code {
+     @apply bg-muted text-muted-foreground rounded px-1 py-0.5 text-sm;
+  }
+  .ProseMirror blockquote {
+    @apply border-l-4 border-primary pl-4 italic;
+  }
+  .ProseMirror hr {
+    @apply border-border my-4;
+  }
 }
