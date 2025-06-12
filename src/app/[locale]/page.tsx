@@ -970,7 +970,10 @@ export default function WhiteboardPage() {
       )}
 
       {currentAppMode === 'organize' && (
-         <OrganizeModeView />
+         <OrganizeModeView 
+            themeBackgroundColor={effectiveEraserColor}
+            themeTextColor={effectivePenColor}
+         />
       )}
       
       {currentAppMode === 'draft' && (

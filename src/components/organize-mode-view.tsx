@@ -52,13 +52,18 @@ const availableCommands: Command[] = [
 
 type OrganizeViewMode = 'edit' | 'preview';
 
-export function OrganizeModeView() {
+interface OrganizeModeViewProps {
+  themeBackgroundColor: string;
+  themeTextColor: string;
+}
+
+export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: OrganizeModeViewProps) {
   const t = useI18n();
   const { toast, dismiss: dismissToast } = useToast();
   const [cornellNote, setCornellNote] = useAutosave<CornellNote>(LOCAL_STORAGE_CORNELL_NOTE_KEY, initialCornellNote);
   
   const mainNotesTextareaRef = React.useRef<HTMLTextAreaElement>(null);
-  const popoverAnchorRef = React.useRef<HTMLDivElement>(null); // For slash command palette positioning
+  const popoverAnchorRef = React.useRef<HTMLDivElement>(null); 
 
   const [isSlashPaletteOpen, setIsSlashPaletteOpen] = React.useState(false);
   const [slashQuery, setSlashQuery] = React.useState('');
@@ -128,7 +133,7 @@ export function OrganizeModeView() {
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    const textarea = mainNotesTextareaRef.current; // Assuming keydowns are primarily for main notes
+    const textarea = mainNotesTextareaRef.current;
     if (!textarea) return;
   
     if (event.key === 'Enter') {
@@ -136,30 +141,25 @@ export function OrganizeModeView() {
       const currentText = textarea.value;
       const lineStart = currentText.lastIndexOf('\n', cursorPos - 1) + 1;
       const currentLineText = currentText.substring(lineStart, cursorPos);
+      
+      const trimmedCurrentLine = currentLineText.trim();
 
-      if (currentLineText.trim() === '---') {
-        let lineEnd = currentText.indexOf('\n', cursorPos);
-        if (lineEnd === -1) {
-          lineEnd = currentText.length;
-        }
-        const fullCurrentLine = currentText.substring(lineStart, lineEnd).trim();
-
-        if (fullCurrentLine === '---') {
-            event.preventDefault();
-            const textBefore = currentText.substring(0, lineStart);
-            const textAfter = currentText.substring(lineEnd);
-            const newText = `${textBefore}---\n${textAfter.startsWith('\n') ? textAfter.substring(1) : textAfter}`;
-            handleInputChange('mainNotes', newText);
-    
-            const newCursorPos = `${textBefore}---\n`.length;
-            setTimeout(() => {
-              if (textarea.focus) {
-                textarea.focus();
-                textarea.setSelectionRange(newCursorPos, newCursorPos);
-              }
-            }, 0);
-            return;
-        }
+      if (trimmedCurrentLine === '---') {
+          event.preventDefault();
+          const textBefore = currentText.substring(0, lineStart);
+          const textAfterCurrentLine = currentText.substring(cursorPos);
+          
+          const newText = `${textBefore}---\n${textAfterCurrentLine}`;
+          handleInputChange('mainNotes', newText);
+  
+          const newCursorPos = `${textBefore}---\n`.length;
+          setTimeout(() => {
+            if (textarea.focus) {
+              textarea.focus();
+              textarea.setSelectionRange(newCursorPos, newCursorPos);
+            }
+          }, 0);
+          return;
       }
     }
     
@@ -219,6 +219,8 @@ export function OrganizeModeView() {
         const margin = 15; 
         const maxLineWidth = pageWidth - margin * 2;
         
+        doc.setTextColor(themeTextColor === 'hsl(0 0% 100%)' || themeTextColor === 'hsl(0 0% 95%)' ? 20 : 20); // Basic dark/light text for PDF
+
         const lines = doc.splitTextToSize(exportContent, maxLineWidth);
         doc.text(lines, margin, margin);
         doc.save(filename);
@@ -236,27 +238,69 @@ export function OrganizeModeView() {
     }
   };
 
+  const SectionHeader = ({ label }: { label: string }) => (
+    <div className="p-2 border-b border-border" style={{ borderColor: 'hsl(var(--border))' }}>
+      <h2 className="font-semibold text-sm" style={{ color: themeTextColor, opacity: 0.8 }}>{label}</h2>
+    </div>
+  );
+
   const RenderSection = ({ content, placeholder }: { content: string; placeholder: string }) => {
     if (organizeViewMode === 'preview') {
       return (
         <ScrollArea className="h-full p-3">
-          <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose dark:prose-invert max-w-none">
-            {content || `*${placeholder}*`}
-          </ReactMarkdown>
+          <div style={{color: themeTextColor}} className={cn("prose dark:prose-invert max-w-none", themeTextColor === 'hsl(0 0% 0%)' ? '' : 'prose-invert-theme-colors' )}>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {content || `*${placeholder}*`}
+            </ReactMarkdown>
+          </div>
         </ScrollArea>
       );
     }
-    return null; // Textarea is rendered directly for edit mode
+    return null; 
   };
+  
+  const placeholderStyle = {
+    '--placeholder-color': themeTextColor,
+    '--placeholder-opacity': '0.6',
+  } as React.CSSProperties;
+
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-background text-foreground">
-      <div className="flex justify-between items-center p-4 border-b flex-shrink-0">
+    <div 
+      className="flex flex-col h-full overflow-hidden" 
+      style={{ backgroundColor: themeBackgroundColor, color: themeTextColor }}
+    >
+      <style jsx global>{`
+        .theme-placeholder::placeholder {
+          color: var(--placeholder-color);
+          opacity: var(--placeholder-opacity);
+        }
+        .prose-invert-theme-colors {
+            --tw-prose-body: ${themeTextColor};
+            --tw-prose-headings: ${themeTextColor};
+            --tw-prose-lead: ${themeTextColor};
+            --tw-prose-links: ${themeTextColor};
+            --tw-prose-bold: ${themeTextColor};
+            --tw-prose-counters: ${themeTextColor};
+            --tw-prose-bullets: ${themeTextColor};
+            --tw-prose-hr: ${themeTextColor};
+            --tw-prose-quotes: ${themeTextColor};
+            --tw-prose-quote-borders: ${themeTextColor};
+            --tw-prose-captions: ${themeTextColor};
+            --tw-prose-code: ${themeTextColor};
+            --tw-prose-pre-code: ${themeTextColor};
+            --tw-prose-pre-bg: rgba(0,0,0,0.2); // A generic semi-transparent dark for code blocks
+            --tw-prose-th-borders: ${themeTextColor};
+            --tw-prose-td-borders: ${themeTextColor};
+        }
+      `}</style>
+      <div className="flex justify-between items-center p-4 border-b border-border flex-shrink-0" style={{ borderColor: 'hsl(var(--border))' }}>
         <Input
           placeholder={t('cornellNotes.titlePlaceholder')}
           value={cornellNote.title}
           onChange={(e) => handleInputChange('title', e.target.value)}
-          className="text-xl font-semibold border-none focus-visible:ring-0 focus-visible:ring-offset-0 flex-grow max-w-md mr-4 bg-transparent"
+          className="text-xl font-semibold border-none focus-visible:ring-0 focus-visible:ring-offset-0 flex-grow max-w-md mr-4 bg-transparent theme-placeholder"
+          style={{ color: themeTextColor, ...placeholderStyle }}
           aria-label={t('cornellNotes.titlePlaceholder')}
         />
         <div className="flex items-center space-x-2">
@@ -297,20 +341,17 @@ export function OrganizeModeView() {
         </div>
       </div>
 
-      {/* Main Cornell Layout */}
       <div className="flex flex-grow overflow-hidden" ref={popoverAnchorRef}>
-        {/* Cues Area (Left) */}
-        <div className="w-1/3 lg:w-1/4 flex flex-col border-r">
-          <div className="p-2 border-b">
-            <h2 className="font-semibold text-sm text-muted-foreground">{t('cornellNotes.cuesArea')}</h2>
-          </div>
+        <div className="w-1/3 lg:w-1/4 flex flex-col border-r border-border" style={{ borderColor: 'hsl(var(--border))' }}>
+          <SectionHeader label={t('cornellNotes.cuesArea')} />
           <div className="flex-grow relative">
             {organizeViewMode === 'edit' ? (
               <Textarea
                 placeholder={t('cornellNotes.cuesPlaceholder')}
                 value={cornellNote.cues}
                 onChange={(e) => handleInputChange('cues', e.target.value)}
-                className="w-full h-full resize-none border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-3 text-sm leading-relaxed bg-transparent"
+                className="w-full h-full resize-none border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-3 text-sm leading-relaxed bg-transparent theme-placeholder"
+                style={{ color: themeTextColor, ...placeholderStyle }}
                 aria-label={t('cornellNotes.cuesPlaceholder')}
               />
             ) : (
@@ -319,13 +360,9 @@ export function OrganizeModeView() {
           </div>
         </div>
 
-        {/* Main Notes & Summary Container (Right) */}
         <div className="w-2/3 lg:w-3/4 flex flex-col">
-          {/* Main Notes Area */}
           <div className="flex-grow flex flex-col" style={{minHeight: '70%'}}>
-             <div className="p-2 border-b">
-                <h2 className="font-semibold text-sm text-muted-foreground">{t('cornellNotes.mainNotesArea')}</h2>
-             </div>
+             <SectionHeader label={t('cornellNotes.mainNotesArea')} />
             <div className="flex-grow relative">
               {organizeViewMode === 'edit' ? (
                 <Textarea
@@ -334,7 +371,8 @@ export function OrganizeModeView() {
                   value={cornellNote.mainNotes}
                   onChange={handleMainNotesChange}
                   onKeyDown={handleKeyDown}
-                  className="w-full h-full resize-none border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-3 text-sm leading-relaxed bg-transparent"
+                  className="w-full h-full resize-none border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-3 text-sm leading-relaxed bg-transparent theme-placeholder"
+                  style={{ color: themeTextColor, ...placeholderStyle }}
                   aria-label={t('cornellNotes.mainNotesPlaceholder')}
                 />
               ) : (
@@ -347,24 +385,22 @@ export function OrganizeModeView() {
                   commands={availableCommands}
                   onCommandSelect={handleCommandSelect}
                   query={slashQuery}
-                  targetRef={popoverAnchorRef} // Position relative to the whole notes area
+                  targetRef={popoverAnchorRef} 
                 />
               )}
             </div>
           </div>
 
-          {/* Summary Area */}
-          <div className="flex flex-col border-t" style={{minHeight: '30%'}}>
-            <div className="p-2 border-b">
-                <h2 className="font-semibold text-sm text-muted-foreground">{t('cornellNotes.summaryArea')}</h2>
-            </div>
+          <div className="flex flex-col border-t border-border" style={{minHeight: '30%', borderColor: 'hsl(var(--border))' }}>
+            <SectionHeader label={t('cornellNotes.summaryArea')} />
             <div className="flex-grow relative">
             {organizeViewMode === 'edit' ? (
               <Textarea
                 placeholder={t('cornellNotes.summaryPlaceholder')}
                 value={cornellNote.summary}
                 onChange={(e) => handleInputChange('summary', e.target.value)}
-                className="w-full h-full resize-none border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-3 text-sm leading-relaxed bg-transparent"
+                className="w-full h-full resize-none border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-3 text-sm leading-relaxed bg-transparent theme-placeholder"
+                style={{ color: themeTextColor, ...placeholderStyle }}
                 aria-label={t('cornellNotes.summaryPlaceholder')}
               />
             ) : (
@@ -377,3 +413,4 @@ export function OrganizeModeView() {
     </div>
   );
 }
+
