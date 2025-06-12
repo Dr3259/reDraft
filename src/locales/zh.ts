@@ -14,10 +14,10 @@ export default {
   },
   organizeMode: {
     editorTitle: '笔记编辑器',
-    editorDescription: '在此撰写和整理您的想法。使用 AI 助手获取建议。',
+    editorDescription: '在此撰写和整理您的想法。',
     placeholder: '在此开始输入您的笔记...',
-    suggestionsDescription: '查看下方 AI 生成的建议。',
-    saveNote: '保存笔记', // 当前未使用，因为是自动保存
+    suggestionsDescription: '查看下方 AI 生成的建议。', // This can be removed too if no UI refers to it
+    saveNote: '保存笔记',
   },
   languageSwitcher: {
     english: '英文',
@@ -92,20 +92,7 @@ export default {
     md: '导出为 .md',
     pdf: '导出为 .pdf',
   },
-  aiAssistant: {
-    title: 'AI 助手',
-    description: '获取语法、清晰度和风格方面的建议。',
-    getSuggestions: '获取建议',
-    gettingSuggestions: '正在获取建议...',
-    suggestionsReadyTitle: 'AI 建议已准备好',
-    suggestionsReadyDescription: '建议已生成。',
-    emptyNoteTitle: '笔记为空',
-    emptyNoteDescription: '在获取建议前请先写点东西。',
-    aiErrorTitle: 'AI 错误',
-    aiErrorDescription: '无法获取建议。',
-    suggestionsHeader: '建议:',
-    failedToGetSuggestions: '获取建议失败，请重试。',
-  },
+  // AI Assistant section removed
   toast: {
     exportedAs: '已导出为 {format}',
     downloadedTitle: '下载已开始',

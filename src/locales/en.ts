@@ -14,10 +14,10 @@ export default {
   },
   organizeMode: {
     editorTitle: 'Note Editor',
-    editorDescription: 'Write and organize your thoughts. Use the AI Assistant for suggestions.',
+    editorDescription: 'Write and organize your thoughts here.',
     placeholder: 'Start typing your notes here...',
-    suggestionsDescription: 'Review the AI-generated suggestions below.',
-    saveNote: 'Save Note', // Not used currently due to autosave
+    suggestionsDescription: 'Review the AI-generated suggestions below.', // This can be removed too if no UI refers to it
+    saveNote: 'Save Note', 
   },
   languageSwitcher: {
     english: 'English',
@@ -92,20 +92,7 @@ export default {
     md: 'Export as .md',
     pdf: 'Export as .pdf',
   },
-  aiAssistant: {
-    title: 'AI Assistant',
-    description: 'Get suggestions for grammar, clarity, and style.',
-    getSuggestions: 'Get Suggestions',
-    gettingSuggestions: 'Getting Suggestions...',
-    suggestionsReadyTitle: 'AI Suggestions Ready',
-    suggestionsReadyDescription: 'Suggestions have been generated.',
-    emptyNoteTitle: 'Empty Note',
-    emptyNoteDescription: 'Write something before getting suggestions.',
-    aiErrorTitle: 'AI Error',
-    aiErrorDescription: 'Could not fetch suggestions.',
-    suggestionsHeader: 'Suggestions:',
-    failedToGetSuggestions: 'Failed to get suggestions. Please try again.',
-  },
+  // AI Assistant section removed
   toast: {
     exportedAs: 'Exported as {format}',
     downloadedTitle: 'Download Started',
