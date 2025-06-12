@@ -43,8 +43,12 @@ export default {
     draftThumbnailAlt: '草稿 {draftName} 的缩略图',
     emptyCanvasTitle: '画布为空',
     emptyCanvasDescription: '画布上没有可保存的内容。',
+    emptyCanvasDownloadTitle: '画布为空',
+    emptyCanvasDownloadDescription: '画布上没有可下载的内容。',
     canvasNotReadyError: '画布尚未准备好。请稍候再试。',
     genericSaveError: '尝试保存时发生意外错误。',
+    downloadErrorTitle: '下载错误',
+    downloadErrorDescription: '无法准备画布以下载。',
   },
   export: {
     title: '导出笔记',

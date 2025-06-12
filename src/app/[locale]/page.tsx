@@ -539,11 +539,12 @@ export default function WhiteboardPage() {
       }, 2000);
     } catch (error) {
       console.error("Error saving draft to localStorage:", error);
-      toast({
+      const { id: toastId } = toast({
         variant: "destructive",
         title: t('whiteboard.draftSaveErrorTitle'),
         description: t('whiteboard.draftSaveErrorDescription'),
       });
+      setTimeout(() => { dismissToast(toastId); }, 3000);
     }
   };
   
@@ -587,12 +588,77 @@ export default function WhiteboardPage() {
 
   const handleDownloadCanvas = () => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const dataUrl = canvas.toDataURL('image/png');
+    if (!canvas || canvas.width === 0 || canvas.height === 0) {
+      const { id: toastId } = toast({
+        variant: "destructive",
+        title: t('whiteboard.downloadErrorTitle'),
+        description: t('whiteboard.canvasNotReadyError'),
+      });
+      setTimeout(() => { dismissToast(toastId); }, 3000);
+      return;
+    }
+
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const tempCtx = tempCanvas.getContext('2d');
+
+    if (!tempCtx) {
+       const { id: toastId } = toast({
+        variant: "destructive",
+        title: t('whiteboard.downloadErrorTitle'),
+        description: t('whiteboard.downloadErrorDescription'),
+      });
+      setTimeout(() => { dismissToast(toastId); }, 3000);
+      return;
+    }
+    
+    tempCtx.fillStyle = effectiveEraserColor;
+    tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+    let blankCanvasDataUrl: string;
+    try {
+      blankCanvasDataUrl = tempCanvas.toDataURL('image/png');
+    } catch (e) {
+      console.error("Error getting blank canvas data URL for download check:", e);
+      const { id: toastId } = toast({
+        variant: "destructive",
+        title: t('whiteboard.downloadErrorTitle'),
+        description: t('whiteboard.downloadErrorDescription'),
+      });
+      setTimeout(() => { dismissToast(toastId); }, 3000);
+      return;
+    }
+    
+    let currentCanvasDataUrl: string;
+    try {
+      currentCanvasDataUrl = canvas.toDataURL('image/png');
+    } catch (e) {
+       console.error("Error getting current canvas data URL for download:", e);
+       const { id: toastId } = toast({
+        variant: "destructive",
+        title: t('whiteboard.downloadErrorTitle'),
+        description: t('whiteboard.downloadErrorDescription'),
+      });
+      setTimeout(() => { dismissToast(toastId); }, 3000);
+      return;
+    }
+
+    if (currentCanvasDataUrl === blankCanvasDataUrl) {
+      const { id: toastId } = toast({
+        title: t('whiteboard.emptyCanvasDownloadTitle'),
+        description: t('whiteboard.emptyCanvasDownloadDescription'),
+      });
+      setTimeout(() => {
+        dismissToast(toastId);
+      }, 3000);
+      return;
+    }
+
     const link = document.createElement('a');
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     link.download = `whiteboard-${timestamp}.png`;
-    link.href = dataUrl;
+    link.href = currentCanvasDataUrl;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

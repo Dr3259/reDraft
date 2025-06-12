@@ -43,8 +43,12 @@ export default {
     draftThumbnailAlt: 'Thumbnail of draft {draftName}',
     emptyCanvasTitle: 'Empty Canvas',
     emptyCanvasDescription: 'There is no content on the canvas to save.',
+    emptyCanvasDownloadTitle: 'Empty Canvas',
+    emptyCanvasDownloadDescription: 'There is no content on the canvas to download.',
     canvasNotReadyError: 'Canvas is not ready. Please wait a moment and try again.',
     genericSaveError: 'An unexpected error occurred while trying to save.',
+    downloadErrorTitle: 'Download Error',
+    downloadErrorDescription: 'Could not prepare the canvas for download.',
   },
   export: {
     title: 'Export Note',
