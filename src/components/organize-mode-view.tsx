@@ -32,7 +32,6 @@ import remarkGfm from 'remark-gfm';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
-const LOCAL_STORAGE_CORNELL_NOTE_KEY = 'cornellNote_v1'; // Deprecated
 const LOCAL_STORAGE_CORNELL_DRAFTS_KEY = 'cornellNoteDrafts_v1';
 
 interface CornellNote {
@@ -101,30 +100,11 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
           console.error("Error parsing Cornell drafts from localStorage:", e);
           localStorage.removeItem(LOCAL_STORAGE_CORNELL_DRAFTS_KEY);
         }
-      } else {
-        const oldNoteJson = localStorage.getItem(LOCAL_STORAGE_CORNELL_NOTE_KEY);
-        if (oldNoteJson) {
-          try {
-            const oldNote = JSON.parse(oldNoteJson) as CornellNote;
-            if (oldNote.title || oldNote.cues || oldNote.mainNotes || oldNote.summary) {
-              setCornellNote(oldNote); 
-              const { id: toastId } = toast({
-                title: t('cornellNotes.migratedOldNoteTitle'),
-                description: t('cornellNotes.migratedOldNoteDescription'),
-              });
-              setTimeout(() => dismissToast(toastId), 5000);
-              localStorage.removeItem(LOCAL_STORAGE_CORNELL_NOTE_KEY); 
-            }
-          } catch (e) {
-            console.error("Error parsing old Cornell note:", e);
-            localStorage.removeItem(LOCAL_STORAGE_CORNELL_NOTE_KEY);
-          }
-        }
       }
     };
     loadDrafts();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [t]);
+  }, []);
 
 
   const handleToggleViewMode = () => {
@@ -198,15 +178,21 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
       const currentText = textarea.value;
       
       const lineStart = currentText.lastIndexOf('\n', cursorPos - 1) + 1;
-      const currentLineText = currentText.substring(lineStart, currentText.indexOf('\n', lineStart) === -1 ? currentText.length : currentText.indexOf('\n', lineStart)).trim();
+      const currentLineText = currentText.substring(lineStart, cursorPos).trim();
+      const lineAfterCursor = currentText.substring(cursorPos).split('\n')[0].trim();
+      const fullLineContent = (currentLineText + lineAfterCursor).trim();
 
 
-      if (currentLineText === '---') {
+      if (fullLineContent === '---') {
           event.preventDefault();
           const textBeforeCurrentLine = currentText.substring(0, lineStart);
-          const textAfterCurrentLineContent = currentText.substring(lineStart + currentLineText.length + (currentText.indexOf('\n', lineStart) === lineStart + currentLineText.length ? 1: 0) );
+          let textAfterCurrentLine = currentText.substring(cursorPos);
+          const firstCharAfterCursorOnLine = currentText.substring(cursorPos, currentText.indexOf('\n', cursorPos) === -1 ? currentText.length : currentText.indexOf('\n', cursorPos));
+          
+          textAfterCurrentLine = currentText.substring(lineStart + fullLineContent.length + (currentText.indexOf('\n', lineStart) === lineStart + fullLineContent.length ? 1: (firstCharAfterCursorOnLine.length > 0 ? 0 : -1 ) ) );
 
-          const newText = `${textBeforeCurrentLine}---\n${textAfterCurrentLineContent}`;
+
+          const newText = `${textBeforeCurrentLine}---\n${textAfterCurrentLine}`;
           handleInputChange('mainNotes', newText);
   
           const newCursorPos = `${textBeforeCurrentLine}---\n`.length;
@@ -375,8 +361,7 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
   const SectionHeader = ({ label }: { label: string }) => (
     <div className="px-3 pt-3 pb-1 flex-shrink-0">
       <h2 
-        className="font-medium text-xs uppercase tracking-wider"
-        style={{ color: themeTextColor, opacity: 0.6 }}
+        className="font-medium text-sm text-muted-foreground uppercase tracking-wider"
       >
         {label}
       </h2>
@@ -384,10 +369,25 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
   );
 
   const RenderSection = ({ content, placeholder }: { content: string; placeholder: string }) => {
+    let isDarkBg = false;
+    const match = themeTextColor.match(/hsl\(\s*\d+\s+\d+%\s+(\d+)%\s*\)/);
+    if (match && match[1]) {
+      const lightness = parseInt(match[1], 10);
+      if (lightness > 60) { 
+        isDarkBg = true;
+      }
+    }
+
     if (organizeViewMode === 'preview') {
       return (
         <ScrollArea className="h-full p-3">
-          <div style={{color: themeTextColor}} className={cn("prose dark:prose-invert max-w-none", themeTextColor === 'hsl(0 0% 0%)' || themeTextColor === 'hsl(0, 0%, 0%)' ||  themeTextColor.startsWith('hsl(0 0%') ? '' : 'prose-invert-theme-colors' )}>
+          <div 
+            style={{ color: themeTextColor }} 
+            className={cn(
+              "prose max-w-none",
+              isDarkBg && "prose-invert" 
+            )}
+          >
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {content || `*${placeholder}*`}
             </ReactMarkdown>
@@ -409,30 +409,6 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
       className="relative flex flex-col h-full overflow-hidden" 
       style={{ backgroundColor: themeBackgroundColor, color: themeTextColor }}
     >
-      <style jsx global>{`
-        .theme-placeholder::placeholder {
-          color: var(--placeholder-color);
-          opacity: var(--placeholder-opacity);
-        }
-        .prose-invert-theme-colors {
-            --tw-prose-body: ${themeTextColor};
-            --tw-prose-headings: ${themeTextColor};
-            --tw-prose-lead: ${themeTextColor};
-            --tw-prose-links: ${themeTextColor};
-            --tw-prose-bold: ${themeTextColor};
-            --tw-prose-counters: ${themeTextColor};
-            --tw-prose-bullets: ${themeTextColor};
-            --tw-prose-hr: ${themeTextColor};
-            --tw-prose-quotes: ${themeTextColor};
-            --tw-prose-quote-borders: ${themeTextColor};
-            --tw-prose-captions: ${themeTextColor};
-            --tw-prose-code: ${themeTextColor};
-            --tw-prose-pre-code: ${themeTextColor};
-            --tw-prose-pre-bg: rgba(120,120,120,0.1); 
-            --tw-prose-th-borders: ${themeTextColor};
-            --tw-prose-td-borders: ${themeTextColor};
-        }
-      `}</style>
       <div className="flex justify-between items-center p-4 border-b border-border flex-shrink-0" style={{ borderColor: 'hsl(var(--border))' }}>
         <Input
           placeholder={t('cornellNotes.titlePlaceholder')}
@@ -629,4 +605,3 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
     </div>
   );
 }
-
