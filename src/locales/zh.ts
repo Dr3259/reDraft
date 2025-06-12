@@ -15,8 +15,7 @@ export default {
   organizeMode: {
     editorTitle: '笔记编辑器',
     editorDescription: '在此撰写和整理您的想法。',
-    placeholder: '在此开始输入您的笔记...',
-    suggestionsDescription: '查看下方 AI 生成的建议。', // This can be removed too if no UI refers to it
+    placeholder: '在此开始输入您的笔记... 输入 / 获取命令。', // Updated placeholder
     saveNote: '保存笔记',
   },
   languageSwitcher: {
@@ -92,7 +91,6 @@ export default {
     md: '导出为 .md',
     pdf: '导出为 .pdf',
   },
-  // AI Assistant section removed
   toast: {
     exportedAs: '已导出为 {format}',
     downloadedTitle: '下载已开始',
@@ -102,5 +100,14 @@ export default {
   },
   footer: {
     copyright: '© {year} 笔记画布. 版权所有.',
+  },
+  slashCommands: { // Added
+    heading1: '一级标题',
+    heading2: '二级标题',
+    heading3: '三级标题',
+    bulletedList: '项目符号列表',
+    numberedList: '编号列表',
+    todoList: '待办事项列表',
+    noResults: '未找到匹配的命令',
   }
 } as const;

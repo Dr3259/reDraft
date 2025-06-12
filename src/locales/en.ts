@@ -15,8 +15,7 @@ export default {
   organizeMode: {
     editorTitle: 'Note Editor',
     editorDescription: 'Write and organize your thoughts here.',
-    placeholder: 'Start typing your notes here...',
-    suggestionsDescription: 'Review the AI-generated suggestions below.', // This can be removed too if no UI refers to it
+    placeholder: 'Start typing your notes here... Type / for commands.', // Updated placeholder
     saveNote: 'Save Note', 
   },
   languageSwitcher: {
@@ -92,7 +91,6 @@ export default {
     md: 'Export as .md',
     pdf: 'Export as .pdf',
   },
-  // AI Assistant section removed
   toast: {
     exportedAs: 'Exported as {format}',
     downloadedTitle: 'Download Started',
@@ -102,5 +100,14 @@ export default {
   },
   footer: {
     copyright: '© {year} NoteCanvas. All rights reserved.',
+  },
+  slashCommands: { // Added
+    heading1: 'Heading 1',
+    heading2: 'Heading 2',
+    heading3: 'Heading 3',
+    bulletedList: 'Bulleted List',
+    numberedList: 'Numbered List',
+    todoList: 'Todo List',
+    noResults: 'No commands match',
   }
 } as const;
