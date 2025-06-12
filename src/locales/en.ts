@@ -15,7 +15,7 @@ export default {
   organizeMode: {
     editorTitle: 'Note Editor',
     editorDescription: 'Write and organize your thoughts here.',
-    placeholder: 'Start typing your notes here... Type / for commands.', // Updated placeholder
+    placeholder: 'Start typing your notes here... Type / for commands.',
     saveNote: 'Save Note', 
   },
   languageSwitcher: {
@@ -90,6 +90,8 @@ export default {
     txt: 'Export as .txt',
     md: 'Export as .md',
     pdf: 'Export as .pdf',
+    emptyNoteErrorTitle: 'Empty Note',
+    emptyNoteErrorDescription: 'There is no content to export.',
   },
   toast: {
     exportedAs: 'Exported as {format}',
@@ -101,7 +103,7 @@ export default {
   footer: {
     copyright: '© {year} NoteCanvas. All rights reserved.',
   },
-  slashCommands: { // Added
+  slashCommands: {
     heading1: 'Heading 1',
     heading2: 'Heading 2',
     heading3: 'Heading 3',

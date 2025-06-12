@@ -15,7 +15,7 @@ export default {
   organizeMode: {
     editorTitle: '笔记编辑器',
     editorDescription: '在此撰写和整理您的想法。',
-    placeholder: '在此开始输入您的笔记... 输入 / 获取命令。', // Updated placeholder
+    placeholder: '在此开始输入您的笔记... 输入 / 获取命令。',
     saveNote: '保存笔记',
   },
   languageSwitcher: {
@@ -90,6 +90,8 @@ export default {
     txt: '导出为 .txt',
     md: '导出为 .md',
     pdf: '导出为 .pdf',
+    emptyNoteErrorTitle: '笔记为空',
+    emptyNoteErrorDescription: '没有可导出的内容。',
   },
   toast: {
     exportedAs: '已导出为 {format}',
@@ -101,7 +103,7 @@ export default {
   footer: {
     copyright: '© {year} 笔记画布. 版权所有.',
   },
-  slashCommands: { // Added
+  slashCommands: {
     heading1: '一级标题',
     heading2: '二级标题',
     heading3: '三级标题',

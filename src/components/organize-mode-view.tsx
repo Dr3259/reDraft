@@ -5,8 +5,18 @@ import * as React from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { useI18n } from '@/locales/client';
 import { useAutosave } from '@/hooks/useAutosave';
-import { SlashCommandPalette, type Command } from '@/components/slash-command-palette'; // Added
-import { Heading1, Heading2, Heading3, List, ListOrdered, ListTodo } from 'lucide-react'; // Added
+import { SlashCommandPalette, type Command } from '@/components/slash-command-palette';
+import { Heading1, Heading2, Heading3, List, ListOrdered, ListTodo, Download, FileText, FileType, FileJson } from 'lucide-react'; // Added Download, FileText
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
+import { jsPDF } from "jspdf";
 
 const LOCAL_STORAGE_ORGANIZE_NOTE_KEY = 'organizeModeNote_v1';
 
@@ -21,13 +31,14 @@ const availableCommands: Command[] = [
 
 export function OrganizeModeView() {
   const t = useI18n();
+  const { toast, dismiss: dismissToast } = useToast();
   const [noteContent, setNoteContent] = useAutosave(LOCAL_STORAGE_ORGANIZE_NOTE_KEY, '');
-  const textareaRef = React.useRef<HTMLTextAreaElement>(null); // Added
-  const popoverAnchorRef = React.useRef<HTMLDivElement>(null); // Added
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const popoverAnchorRef = React.useRef<HTMLDivElement>(null);
 
-  const [isSlashPaletteOpen, setIsSlashPaletteOpen] = React.useState(false); // Added
-  const [slashQuery, setSlashQuery] = React.useState(''); // Added
-  const [slashTriggerPosition, setSlashTriggerPosition] = React.useState(0); // Added to store cursor pos when / was typed
+  const [isSlashPaletteOpen, setIsSlashPaletteOpen] = React.useState(false);
+  const [slashQuery, setSlashQuery] = React.useState('');
+  const [slashTriggerPosition, setSlashTriggerPosition] = React.useState(0);
 
   const handleTextChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = event.target.value;
@@ -40,7 +51,7 @@ export function OrganizeModeView() {
     if (match) {
       setIsSlashPaletteOpen(true);
       setSlashQuery(match[1]);
-      setSlashTriggerPosition(cursorPos); // Store cursor position at the end of the query
+      setSlashTriggerPosition(cursorPos);
     } else {
       setIsSlashPaletteOpen(false);
       setSlashQuery('');
@@ -51,15 +62,10 @@ export function OrganizeModeView() {
     if (!textareaRef.current) return;
 
     const currentValue = textareaRef.current.value;
-    // const currentSelectionStart = textareaRef.current.selectionStart; // Not directly used
-
-    // Determine the actual start of the `/query` text
-    // slashTriggerPosition is the end of the /query string.
-    // length of /query is 1 (for '/') + slashQuery.length
     const queryLengthWithSlash = 1 + slashQuery.length;
     const startOfSlashCommand = slashTriggerPosition - queryLengthWithSlash;
 
-    if (startOfSlashCommand < 0) { // Should not happen if logic is correct
+    if (startOfSlashCommand < 0) {
         setIsSlashPaletteOpen(false);
         return;
     }
@@ -72,9 +78,8 @@ export function OrganizeModeView() {
     setIsSlashPaletteOpen(false);
     setSlashQuery('');
 
-    // Set cursor position after the inserted command action
     const newCursorPos = startOfSlashCommand + command.action.length;
-    setTimeout(() => { // setTimeout to allow React to re-render with newText
+    setTimeout(() => {
       if (textareaRef.current) {
         textareaRef.current.focus();
         textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
@@ -88,22 +93,114 @@ export function OrganizeModeView() {
         setIsSlashPaletteOpen(false);
         event.preventDefault();
       }
-      // Future: Add ArrowUp, ArrowDown, Enter for keyboard navigation in palette
     }
   };
 
+  const downloadFile = (filename: string, content: string, mimeType: string) => {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExport = (format: 'txt' | 'md' | 'pdf') => {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filenameBase = `note-${timestamp}`;
+
+    if (noteContent.trim() === '') {
+      const { id: toastId } = toast({
+        variant: "destructive",
+        title: t('export.emptyNoteErrorTitle'),
+        description: t('export.emptyNoteErrorDescription'),
+      });
+      setTimeout(() => dismissToast(toastId), 3000);
+      return;
+    }
+
+    try {
+      if (format === 'txt') {
+        const filename = `${filenameBase}.txt`;
+        downloadFile(filename, noteContent, 'text/plain;charset=utf-8');
+        const { id: toastId } = toast({ title: t('toast.exportedAs', { format: '.txt' }), description: t('toast.downloadedDescription', {filename}) });
+        setTimeout(() => dismissToast(toastId), 2000);
+      } else if (format === 'md') {
+        const filename = `${filenameBase}.md`;
+        downloadFile(filename, noteContent, 'text/markdown;charset=utf-8');
+        const { id: toastId } = toast({ title: t('toast.exportedAs', { format: '.md' }), description: t('toast.downloadedDescription', {filename}) });
+        setTimeout(() => dismissToast(toastId), 2000);
+      } else if (format === 'pdf') {
+        const filename = `${filenameBase}.pdf`;
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const margin = 15; // Increased margin
+        const maxLineWidth = pageWidth - margin * 2;
+        
+        // Set font that supports CJK characters if needed, though jsPDF's default (Helvetica) is limited.
+        // For broader Unicode, a custom font would be needed with jsPDF.
+        // This example uses default fonts.
+        // doc.setFont("helvetica"); // Example, already default
+
+        const lines = doc.splitTextToSize(noteContent, maxLineWidth);
+        doc.text(lines, margin, margin);
+        doc.save(filename);
+        const { id: toastId } = toast({ title: t('toast.exportedAs', { format: '.pdf' }), description: t('toast.downloadedDescription', {filename}) });
+        setTimeout(() => dismissToast(toastId), 2000);
+      }
+    } catch (error) {
+      console.error("Export error:", error);
+      const { id: toastId } = toast({
+        variant: "destructive",
+        title: t('toast.pdfExportErrorTitle'), // Generic error for now
+        description: t('toast.pdfExportErrorDescription'),
+      });
+      setTimeout(() => dismissToast(toastId), 3000);
+    }
+  };
+
+
   return (
     <div className="flex flex-col h-full p-4 sm:p-6 md:p-8 lg:p-12 overflow-y-auto bg-background text-foreground">
-      <div ref={popoverAnchorRef} className="w-full max-w-3xl mx-auto flex flex-col flex-grow relative"> {/* Added ref and relative */}
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold mb-6 md:mb-8 text-foreground flex-shrink-0">
-          {t('appModes.organizeTitle')}
-        </h1>
+      <div ref={popoverAnchorRef} className="w-full max-w-3xl mx-auto flex flex-col flex-grow relative">
+        <div className="flex justify-between items-center mb-6 md:mb-8 flex-shrink-0">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-foreground">
+            {t('appModes.organizeTitle')}
+          </h1>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" aria-label={t('export.title')}>
+                <Download className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleExport('txt')}>
+                <FileText className="mr-2 h-4 w-4" />
+                <span>{t('export.txt')}</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('md')}>
+                {/* Using FileType as a generic icon for Markdown, or FileJson as it's structured text */}
+                {/* Lucide doesn't have a direct "Markdown" icon. FileText is also fine. */}
+                <FileType className="mr-2 h-4 w-4" /> 
+                <span>{t('export.md')}</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => handleExport('pdf')}>
+                <FileJson className="mr-2 h-4 w-4" /> {/* Using FileJson for PDF as it is often a binary format */}
+                <span>{t('export.pdf')}</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
         <Textarea
-          ref={textareaRef} // Added ref
+          ref={textareaRef}
           placeholder={t('organizeMode.placeholder')}
           value={noteContent}
-          onChange={handleTextChange} // Changed
-          onKeyDown={handleKeyDown} // Added
+          onChange={handleTextChange}
+          onKeyDown={handleKeyDown}
           className="w-full flex-grow resize-none border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-1 md:p-2 text-base leading-relaxed bg-transparent placeholder-muted-foreground/70"
           aria-label={t('organizeMode.placeholder')}
         />
@@ -114,7 +211,7 @@ export function OrganizeModeView() {
             commands={availableCommands}
             onCommandSelect={handleCommandSelect}
             query={slashQuery}
-            targetRef={popoverAnchorRef} // Use the wrapper div as anchor
+            targetRef={popoverAnchorRef}
           />
         )}
       </div>
