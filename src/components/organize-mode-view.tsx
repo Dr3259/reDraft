@@ -3,8 +3,6 @@
 
 import * as React from 'react';
 import { Textarea } from '@/components/ui/textarea';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useI18n } from '@/locales/client';
 import { useAutosave } from '@/hooks/useAutosave';
 
@@ -15,28 +13,23 @@ export function OrganizeModeView() {
   const [noteContent, setNoteContent] = useAutosave(LOCAL_STORAGE_ORGANIZE_NOTE_KEY, '');
 
   return (
-    <div className="flex flex-col h-full p-4 md:p-8 space-y-4 overflow-hidden">
-      <h1 className="text-2xl font-semibold">{t('appModes.organizeTitle')}</h1>
-      <div className="flex flex-col md:flex-row flex-grow space-y-4 md:space-y-0 md:space-x-4 overflow-hidden">
-        <Card className="flex-1 flex flex-col overflow-hidden">
-          <CardHeader>
-            <CardTitle>{t('organizeMode.editorTitle')}</CardTitle>
-            <CardDescription>{t('organizeMode.editorDescription')}</CardDescription>
-          </CardHeader>
-          <CardContent className="flex-grow flex flex-col p-0">
-            <ScrollArea className="flex-grow p-6 pt-0">
-              <Textarea
-                placeholder={t('organizeMode.placeholder')}
-                value={noteContent}
-                onChange={(e) => setNoteContent(e.target.value)}
-                className="h-full min-h-[300px] resize-none text-base"
-                aria-label={t('organizeMode.editorTitle')}
-              />
-            </ScrollArea>
-            {/* AI Button removed from here */}
-          </CardContent>
-        </Card>
-        {/* AI Suggestions Card removed from here */}
+    // Main container for organize mode, takes full height and provides padding.
+    // overflow-y-auto allows the entire "page" content (title + textarea) to scroll if needed.
+    <div className="flex flex-col h-full p-4 sm:p-6 md:p-8 lg:p-12 overflow-y-auto bg-background text-foreground">
+      {/* Centered content area with a max-width, like a Notion page. */}
+      {/* flex-grow and flex-col here to allow textarea to expand. */}
+      <div className="w-full max-w-3xl mx-auto flex flex-col flex-grow">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold mb-6 md:mb-8 text-foreground flex-shrink-0">
+          {t('appModes.organizeTitle')}
+        </h1>
+        {/* Textarea should grow to fill remaining vertical space. */}
+        <Textarea
+          placeholder={t('organizeMode.placeholder')}
+          value={noteContent}
+          onChange={(e) => setNoteContent(e.target.value)}
+          className="w-full flex-grow resize-none border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-1 md:p-2 text-base leading-relaxed bg-transparent placeholder-muted-foreground/70"
+          aria-label={t('organizeMode.placeholder')}
+        />
       </div>
     </div>
   );
