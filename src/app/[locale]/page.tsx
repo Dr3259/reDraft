@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useI18n, useCurrentLocale } from '@/locales/client';
 import { LanguageSwitcher } from '@/components/language-switcher';
-import { Eraser, Trash2, Undo2, Save, Download, FolderClock, Palette, Trash, Expand, Minimize } from 'lucide-react';
+import { Eraser, Trash2, Undo2, Save, Download, FolderClock, Palette, Trash, Expand, Minimize, FileSignature, FileDown } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -300,6 +300,9 @@ export default function WhiteboardPage() {
 
     const context = canvasRef.current?.getContext('2d');
     if (context) {
+        context.globalCompositeOperation = 'source-over';
+        context.lineCap = 'round';
+        context.lineJoin = 'round';
       if (currentTool === 'pen') {
         context.strokeStyle = effectivePenColor;
         context.lineWidth = PEN_WIDTH;
@@ -307,10 +310,6 @@ export default function WhiteboardPage() {
         context.strokeStyle = effectiveEraserColor;
         context.lineWidth = ERASER_WIDTH;
       }
-      context.lineCap = 'round';
-      context.lineJoin = 'round';
-      context.globalCompositeOperation = 'source-over';
-
       context.beginPath();
       context.moveTo(x, y);
     }
@@ -406,25 +405,25 @@ export default function WhiteboardPage() {
     }
   };
 
-  const handleClearCanvas = () => {
+ const handleClearCanvas = () => {
     const canvas = canvasRef.current;
     const context = canvas?.getContext('2d');
     if (!canvas || !context) return;
 
     context.fillStyle = effectiveEraserColor;
     context.fillRect(0, 0, canvas.width, canvas.height);
-
+    
+    // Explicitly re-set drawing context properties for the current tool
+    context.globalCompositeOperation = 'source-over';
+    context.lineCap = 'round';
+    context.lineJoin = 'round';
     if (currentTool === 'pen') {
       context.strokeStyle = effectivePenColor;
       context.lineWidth = PEN_WIDTH;
-    } else {
+    } else { // currentTool is 'eraser'
       context.strokeStyle = effectiveEraserColor;
       context.lineWidth = ERASER_WIDTH;
     }
-    context.lineCap = 'round';
-    context.lineJoin = 'round';
-    context.globalCompositeOperation = 'source-over';
-
     saveCanvasState();
   };
 
@@ -461,12 +460,12 @@ export default function WhiteboardPage() {
     });
   };
 
-  const handleSaveCanvasDraft = () => {
+  const handleSaveCanvasDraft = (type: 'save' | 'saveAs' = 'save') => {
     const canvas = canvasRef.current;
-    if (!canvas || canvas.width === 0 || canvas.height === 0) {
+     if (!canvas || canvas.width === 0 || canvas.height === 0) {
       const { id: toastId } = toast({
         variant: "destructive",
-        title: t('whiteboard.draftSaveErrorTitle'),
+        title: t(type === 'save' ? 'whiteboard.draftSaveErrorTitle' : 'whiteboard.downloadErrorTitle'),
         description: t('whiteboard.canvasNotReadyError'),
       });
       setTimeout(() => { dismissToast(toastId); }, 3000);
@@ -481,13 +480,13 @@ export default function WhiteboardPage() {
     if (!tempCtx) {
       const { id: toastId } = toast({
         variant: "destructive",
-        title: t('whiteboard.draftSaveErrorTitle'),
-        description: t('whiteboard.genericSaveError'),
+        title: t(type === 'save' ? 'whiteboard.draftSaveErrorTitle' : 'whiteboard.downloadErrorTitle'),
+        description: t(type === 'save' ? 'whiteboard.genericSaveError' : 'whiteboard.downloadErrorDescription'),
       });
       setTimeout(() => { dismissToast(toastId); }, 3000);
       return;
     }
-
+    
     tempCtx.fillStyle = effectiveEraserColor;
     tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
 
@@ -498,8 +497,8 @@ export default function WhiteboardPage() {
       console.error("Error getting blank canvas data URL:", e);
       const { id: toastId } = toast({
         variant: "destructive",
-        title: t('whiteboard.draftSaveErrorTitle'),
-        description: t('whiteboard.genericSaveError'),
+        title: t(type === 'save' ? 'whiteboard.draftSaveErrorTitle' : 'whiteboard.downloadErrorTitle'),
+        description: t(type === 'save' ? 'whiteboard.genericSaveError' : 'whiteboard.downloadErrorDescription'),
       });
       setTimeout(() => { dismissToast(toastId); }, 3000);
       return;
@@ -512,17 +511,17 @@ export default function WhiteboardPage() {
        console.error("Error getting current canvas data URL:", e);
        const { id: toastId } = toast({
         variant: "destructive",
-        title: t('whiteboard.draftSaveErrorTitle'),
-        description: t('whiteboard.genericSaveError'),
+        title: t(type === 'save' ? 'whiteboard.draftSaveErrorTitle' : 'whiteboard.downloadErrorTitle'),
+        description: t(type === 'save' ? 'whiteboard.genericSaveError' : 'whiteboard.downloadErrorDescription'),
       });
       setTimeout(() => { dismissToast(toastId); }, 3000);
       return;
     }
-
+    
     if (currentCanvasDataUrl === blankCanvasDataUrl) {
       const { id: toastId } = toast({
-        title: t('whiteboard.emptyCanvasTitle'),
-        description: t('whiteboard.emptyCanvasDescription'),
+        title: t(type === 'save' ? 'whiteboard.emptyCanvasTitle' : 'whiteboard.emptyCanvasDownloadTitle'),
+        description: t(type === 'save' ? 'whiteboard.emptyCanvasDescription' : 'whiteboard.emptyCanvasDownloadDescription'),
       });
       setTimeout(() => {
         dismissToast(toastId);
@@ -530,6 +529,23 @@ export default function WhiteboardPage() {
       return;
     }
 
+    if (type === 'saveAs') {
+      const link = document.createElement('a');
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      link.download = `whiteboard-${timestamp}.png`;
+      link.href = currentCanvasDataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      const { id: toastId } = toast({
+        title: t('toast.downloadedTitle'),
+        description: t('toast.downloadedDescription', { filename: link.download }),
+      });
+      setTimeout(() => dismissToast(toastId), 2000);
+      return;
+    }
+    
+    // Type is 'save'
     try {
       const draftName = `${t('whiteboard.draftNamePrefix')} ${new Date().toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' })}`;
       const newDraft: SavedDraft = {
@@ -622,7 +638,7 @@ export default function WhiteboardPage() {
   };
 
 
-  const handleDownloadCanvas = () => {
+  const handleDownloadCanvas = (asDefaultName: boolean = true) => {
     const canvas = canvasRef.current;
     if (!canvas || canvas.width === 0 || canvas.height === 0) {
       const { id: toastId } = toast({
@@ -649,51 +665,55 @@ export default function WhiteboardPage() {
       return;
     }
 
-    tempCtx.fillStyle = effectiveEraserColor;
+    tempCtx.fillStyle = effectiveEraserColor; // Use current theme's background
     tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-
+    
     let blankCanvasDataUrl: string;
     try {
-      blankCanvasDataUrl = tempCanvas.toDataURL('image/png');
+        blankCanvasDataUrl = tempCanvas.toDataURL('image/png');
     } catch (e) {
-      console.error("Error getting blank canvas data URL for download check:", e);
-      const { id: toastId } = toast({
-        variant: "destructive",
-        title: t('whiteboard.downloadErrorTitle'),
-        description: t('whiteboard.downloadErrorDescription'),
-      });
-      setTimeout(() => { dismissToast(toastId); }, 3000);
-      return;
+        console.error("Error getting blank canvas data URL for download check:", e);
+        const { id: toastId } = toast({
+            variant: "destructive",
+            title: t('whiteboard.downloadErrorTitle'),
+            description: t('whiteboard.downloadErrorDescription'),
+        });
+        setTimeout(() => { dismissToast(toastId); }, 3000);
+        return;
     }
 
     let currentCanvasDataUrl: string;
     try {
-      currentCanvasDataUrl = canvas.toDataURL('image/png');
+        currentCanvasDataUrl = canvas.toDataURL('image/png');
     } catch (e) {
-       console.error("Error getting current canvas data URL for download:", e);
-       const { id: toastId } = toast({
-        variant: "destructive",
-        title: t('whiteboard.downloadErrorTitle'),
-        description: t('whiteboard.downloadErrorDescription'),
-      });
-      setTimeout(() => { dismissToast(toastId); }, 3000);
-      return;
+        console.error("Error getting current canvas data URL for download:", e);
+        const { id: toastId } = toast({
+            variant: "destructive",
+            title: t('whiteboard.downloadErrorTitle'),
+            description: t('whiteboard.downloadErrorDescription'),
+        });
+        setTimeout(() => { dismissToast(toastId); }, 3000);
+        return;
     }
 
     if (currentCanvasDataUrl === blankCanvasDataUrl) {
-      const { id: toastId } = toast({
-        title: t('whiteboard.emptyCanvasDownloadTitle'),
-        description: t('whiteboard.emptyCanvasDownloadDescription'),
-      });
-      setTimeout(() => {
-        dismissToast(toastId);
-      }, 3000);
-      return;
+        const { id: toastId } = toast({
+            title: t('whiteboard.emptyCanvasDownloadTitle'),
+            description: t('whiteboard.emptyCanvasDownloadDescription'),
+        });
+        setTimeout(() => {
+            dismissToast(toastId);
+        }, 3000);
+        return;
     }
 
     const link = document.createElement('a');
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    link.download = `whiteboard-${timestamp}.png`;
+    if (asDefaultName) {
+        link.download = 'whiteboard.png';
+    } else {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        link.download = `whiteboard-${timestamp}.png`;
+    }
     link.href = currentCanvasDataUrl;
     document.body.appendChild(link);
     link.click();
@@ -814,15 +834,15 @@ export default function WhiteboardPage() {
               <p>{t('whiteboard.manageDraftsTooltip')}</p>
             </TooltipContent>
           </Tooltip>
-           <Tooltip>
+          <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="outline"
                 size="icon"
-                onClick={handleSaveCanvasDraft}
+                onClick={() => handleSaveCanvasDraft('save')}
                 aria-label={t('whiteboard.saveDraftTooltip')}
               >
-                <Save className="h-5 w-5" />
+                <FileSignature className="h-5 w-5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -834,14 +854,14 @@ export default function WhiteboardPage() {
               <Button
                 variant="outline"
                 size="icon"
-                onClick={handleDownloadCanvas}
-                aria-label={t('whiteboard.downloadTooltip')}
+                onClick={() => handleSaveCanvasDraft('saveAs')}
+                aria-label={t('whiteboard.saveAsTooltip')}
               >
-                <Download className="h-5 w-5" />
+                <FileDown className="h-5 w-5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>{t('whiteboard.downloadTooltip')}</p>
+              <p>{t('whiteboard.saveAsTooltip')}</p>
             </TooltipContent>
           </Tooltip>
           <Tooltip>
@@ -878,7 +898,7 @@ export default function WhiteboardPage() {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant={currentTool === 'eraser' ? 'secondary' : 'outline'}
+                variant={currentTool === 'eraser' ? 'default' : 'outline'}
                 size="icon"
                 onClick={handleToggleEraser}
                 aria-label={t('whiteboard.eraserTooltip')}
