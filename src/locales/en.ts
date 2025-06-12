@@ -47,8 +47,10 @@ export default {
     draftSaveErrorDescription: 'Could not save note draft.',
     draftDeleteErrorTitle: 'Delete Error',
     draftDeleteErrorDescription: 'Could not delete note draft.',
-    emptyDraftTitle: 'Empty Note',
-    emptyDraftDescription: 'There is no content in the note to save as a draft.',
+    emptyDraftTitle: 'Empty Note', // This might be less relevant now if title is mandatory
+    emptyDraftDescription: 'There is no content in the note to save as a draft.', // Same as above
+    titleRequiredErrorTitle: 'Title Required',
+    titleRequiredErrorDescription: 'Please enter a title for your note before saving.',
     migratedOldNoteTitle: 'Previous Note Loaded',
     migratedOldNoteDescription: 'Your previously auto-saved note has been loaded. You can save it as a named draft now.',
   },

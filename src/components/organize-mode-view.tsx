@@ -32,8 +32,8 @@ import remarkGfm from 'remark-gfm';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
-const LOCAL_STORAGE_CORNELL_NOTE_KEY = 'cornellNote_v1'; // Will be deprecated for single auto-save
-const LOCAL_STORAGE_CORNELL_DRAFTS_KEY = 'cornellNoteDrafts_v1'; // New key for multiple drafts
+const LOCAL_STORAGE_CORNELL_NOTE_KEY = 'cornellNote_v1'; // Deprecated
+const LOCAL_STORAGE_CORNELL_DRAFTS_KEY = 'cornellNoteDrafts_v1';
 
 interface CornellNote {
   title: string;
@@ -102,17 +102,20 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
           localStorage.removeItem(LOCAL_STORAGE_CORNELL_DRAFTS_KEY);
         }
       } else {
+        // Check for old single auto-saved note and migrate if it exists and has content
         const oldNoteJson = localStorage.getItem(LOCAL_STORAGE_CORNELL_NOTE_KEY);
         if (oldNoteJson) {
           try {
             const oldNote = JSON.parse(oldNoteJson) as CornellNote;
             if (oldNote.title || oldNote.cues || oldNote.mainNotes || oldNote.summary) {
-              setCornellNote(oldNote);
-              toast({
+              setCornellNote(oldNote); // Load it into the editor
+              // Optionally, inform the user they can now save it as a named draft
+              const { id: toastId } = toast({
                 title: t('cornellNotes.migratedOldNoteTitle'),
                 description: t('cornellNotes.migratedOldNoteDescription'),
               });
-              localStorage.removeItem(LOCAL_STORAGE_CORNELL_NOTE_KEY);
+              setTimeout(() => dismissToast(toastId), 5000);
+              localStorage.removeItem(LOCAL_STORAGE_CORNELL_NOTE_KEY); // Remove the old key
             }
           } catch (e) {
             console.error("Error parsing old Cornell note:", e);
@@ -122,7 +125,8 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
       }
     };
     loadDrafts();
-  }, [t, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t]);
 
 
   const handleToggleViewMode = () => {
@@ -165,6 +169,7 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
     
     let actionToInsert = command.action;
     if (command.id === 'hr') {
+      // Ensure HR is on its own line, potentially adding a newline before if needed
       if (startOfSlashCommand > 0 && currentValue.charAt(startOfSlashCommand - 1) !== '\n') {
         actionToInsert = '\n' + actionToInsert;
       }
@@ -197,13 +202,16 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
       
       const lineStart = currentText.lastIndexOf('\n', cursorPos - 1) + 1;
       const currentLineTextUntrimmed = currentText.substring(lineStart, cursorPos);
-      const currentLineText = currentLineTextUntrimmed.trim();
-      
-      if (currentLineText === '---') {
+      // Check if the line (ignoring leading/trailing spaces of the line content itself before cursor) is '---'
+      const currentLineTextBeforeCursor = currentText.substring(lineStart, cursorPos).trim();
+
+
+      if (currentLineTextBeforeCursor === '---') {
           event.preventDefault();
           const textBeforeCurrentLine = currentText.substring(0, lineStart);
           const textAfterCursor = currentText.substring(cursorPos);
           
+          // Ensure the '---' is exactly that, then add a newline, then the rest of the text
           const newText = `${textBeforeCurrentLine}---\n${textAfterCursor}`;
           handleInputChange('mainNotes', newText);
   
@@ -223,6 +231,7 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
         setIsSlashPaletteOpen(false);
         event.preventDefault();
       }
+      // Add more keyboard interactions for palette if needed (e.g., Arrows, Enter)
     }
   };
 
@@ -240,15 +249,15 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
 
   const formatCornellNoteForExport = () => {
     let content = `# ${cornellNote.title || t('cornellNotes.untitled')}\n\n`;
-    content += `## ${t('cornellNotes.cuesArea')}\n${cornellNote.cues || t('cornellNotes.emptySection')}\n\n`;
-    content += `## ${t('cornellNotes.mainNotesArea')}\n${cornellNote.mainNotes || t('cornellNotes.emptySection')}\n\n`;
-    content += `## ${t('cornellNotes.summaryArea')}\n${cornellNote.summary || t('cornellNotes.emptySection')}\n`;
+    content += `## ${t('cornellNotes.cuesArea')}\n${cornellNote.cues || `_${t('cornellNotes.emptySection')}_`}\n\n`;
+    content += `## ${t('cornellNotes.mainNotesArea')}\n${cornellNote.mainNotes || `_${t('cornellNotes.emptySection')}_`}\n\n`;
+    content += `## ${t('cornellNotes.summaryArea')}\n${cornellNote.summary || `_${t('cornellNotes.emptySection')}_`}\n`;
     return content;
   };
 
   const handleExport = (format: 'txt' | 'md' | 'pdf') => {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filenameBase = `cornell-note-${timestamp}`;
+    const filenameBase = `cornell-note-${(cornellNote.title.trim() || 'untitled').replace(/\s+/g, '_')}-${timestamp}`;
     const exportContent = formatCornellNoteForExport();
 
     if (!cornellNote.title && !cornellNote.cues && !cornellNote.mainNotes && !cornellNote.summary) {
@@ -274,7 +283,9 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
         const margin = 15; 
         const maxLineWidth = pageWidth - margin * 2;
         
-        doc.setTextColor(themeTextColor === 'hsl(0 0% 100%)' || themeTextColor === 'hsl(0 0% 95%)' ? 20 : 20);
+        // Use a basic color for text, slightly different from pure black/white if needed for theme
+        // For simplicity, using black. If themeTextColor is very light, PDF text might be hard to see on white.
+        doc.setTextColor(0,0,0); // Black text for PDF
 
         const lines = doc.splitTextToSize(exportContent, maxLineWidth);
         doc.text(lines, margin, margin);
@@ -294,18 +305,17 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
   };
   
   const handleSaveCornellDraft = () => {
-    if (!cornellNote.title && !cornellNote.cues && !cornellNote.mainNotes && !cornellNote.summary) {
+    if (!cornellNote.title.trim()) {
       const { id: toastId } = toast({
-        title: t('cornellNotes.emptyDraftTitle'),
-        description: t('cornellNotes.emptyDraftDescription'),
+        variant: "destructive",
+        title: t('cornellNotes.titleRequiredErrorTitle'),
+        description: t('cornellNotes.titleRequiredErrorDescription'),
       });
       setTimeout(() => dismissToast(toastId), 3000);
       return;
     }
 
-    const draftName = cornellNote.title.trim() 
-      ? `${t('cornellNotes.draftNamePrefix')} - ${cornellNote.title.trim()}`
-      : `${t('cornellNotes.draftNamePrefix')} - ${new Date().toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' })}`;
+    const draftName = `${t('cornellNotes.draftNamePrefix')} - ${cornellNote.title.trim()}`;
     
     const newDraft: SavedCornellDraft = {
       id: Date.now().toString(),
@@ -381,7 +391,7 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
     if (organizeViewMode === 'preview') {
       return (
         <ScrollArea className="h-full p-3">
-          <div style={{color: themeTextColor}} className={cn("prose dark:prose-invert max-w-none", themeTextColor === 'hsl(0 0% 0%)' ? '' : 'prose-invert-theme-colors' )}>
+          <div style={{color: themeTextColor}} className={cn("prose dark:prose-invert max-w-none", themeTextColor === 'hsl(0 0% 0%)' || themeTextColor === 'hsl(0, 0%, 0%)' ||  themeTextColor.startsWith('hsl(0 0%') ? '' : 'prose-invert-theme-colors' )}>
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {content || `*${placeholder}*`}
             </ReactMarkdown>
@@ -422,7 +432,7 @@ export function OrganizeModeView({ themeBackgroundColor, themeTextColor }: Organ
             --tw-prose-captions: ${themeTextColor};
             --tw-prose-code: ${themeTextColor};
             --tw-prose-pre-code: ${themeTextColor};
-            --tw-prose-pre-bg: rgba(0,0,0,0.2);
+            --tw-prose-pre-bg: rgba(120,120,120,0.1); /* Adjusted for better visibility on various backgrounds */
             --tw-prose-th-borders: ${themeTextColor};
             --tw-prose-td-borders: ${themeTextColor};
         }

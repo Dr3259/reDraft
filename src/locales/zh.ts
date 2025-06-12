@@ -47,8 +47,10 @@ export default {
     draftSaveErrorDescription: '无法保存笔记草稿。',
     draftDeleteErrorTitle: '删除错误',
     draftDeleteErrorDescription: '无法删除笔记草稿。',
-    emptyDraftTitle: '笔记为空',
-    emptyDraftDescription: '笔记中没有内容可以保存为草稿。',
+    emptyDraftTitle: '笔记为空', // 同上，如果标题必填，此条可能意义不大
+    emptyDraftDescription: '笔记中没有内容可以保存为草稿。', // 同上
+    titleRequiredErrorTitle: '需要标题',
+    titleRequiredErrorDescription: '保存前请输入笔记标题。',
     migratedOldNoteTitle: '旧笔记已加载',
     migratedOldNoteDescription: '您之前自动保存的笔记已加载。您可以将其保存为一个新的命名草稿。',
   },
