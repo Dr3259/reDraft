@@ -24,7 +24,7 @@ export default {
     undoTooltip: 'Undo',
     eraserTooltip: 'Eraser',
     saveDraftTooltip: 'Save New Draft',
-    downloadTooltip: 'Download as PNG',
+    saveAsTooltip: 'Download as PNG',
     manageDraftsTooltip: 'Manage Saved Drafts',
     draftSavedTitle: 'Draft Saved',
     draftSavedDescription: "Draft '{draftName}' has been saved in this browser.",
@@ -59,6 +59,19 @@ export default {
     fullscreenErrorTitle: 'Fullscreen Error',
     fullscreenErrorDescription: 'Could not enter fullscreen mode. Your browser might not support it or permission was denied.',
   },
+  penSettings: {
+    title: 'Pen Settings',
+    width: 'Width',
+    color: 'Color',
+    themeColor: 'Theme Color',
+    colors: {
+      black: 'Black',
+      red: 'Red',
+      blue: 'Blue',
+      green: 'Green',
+      yellow: 'Yellow',
+    }
+  },
   export: {
     title: 'Export Note',
     txt: 'Export as .txt',
@@ -90,4 +103,3 @@ export default {
     copyright: '© {year} NoteCanvas. All rights reserved.',
   }
 } as const;
-

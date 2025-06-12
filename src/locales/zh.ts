@@ -24,7 +24,7 @@ export default {
     undoTooltip: '撤销',
     eraserTooltip: '橡皮擦',
     saveDraftTooltip: '保存新草稿',
-    downloadTooltip: '下载为 PNG 图片',
+    saveAsTooltip: '下载为 PNG 图片',
     manageDraftsTooltip: '管理已存草稿',
     draftSavedTitle: '草稿已保存',
     draftSavedDescription: "草稿 '{draftName}' 已保存在此浏览器中。",
@@ -59,6 +59,19 @@ export default {
     fullscreenErrorTitle: '全屏错误',
     fullscreenErrorDescription: '无法进入全屏模式。您的浏览器可能不支持此功能或权限已被拒绝。',
   },
+  penSettings: {
+    title: '画笔设置',
+    width: '粗细',
+    color: '颜色',
+    themeColor: '主题色',
+    colors: {
+      black: '黑色',
+      red: '红色',
+      blue: '蓝色',
+      green: '绿色',
+      yellow: '黄色',
+    }
+  },
   export: {
     title: '导出笔记',
     txt: '导出为 .txt',
@@ -90,4 +103,3 @@ export default {
     copyright: '© {year} 笔记画布. 版权所有.',
   }
 } as const;
-

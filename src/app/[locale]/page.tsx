@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useI18n, useCurrentLocale } from '@/locales/client';
 import { LanguageSwitcher } from '@/components/language-switcher';
-import { Eraser, Trash2, Undo2, Save, Download, FolderClock, Palette, Trash, Expand, Minimize, FileSignature, FileDown } from 'lucide-react';
+import { Eraser, Trash2, Undo2, Save, Download, FolderClock, Palette, Trash, Expand, Minimize, FileSignature, FileDown, PenLine } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -28,10 +28,12 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Slider } from "@/components/ui/slider";
+import { Label } from "@/components/ui/label";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
-const PEN_WIDTH = 2;
 const ERASER_WIDTH = 20;
 const MAX_HISTORY_STEPS = 30;
 const LOCAL_STORAGE_DRAFTS_KEY = 'whiteboardDrafts_v2';
@@ -46,6 +48,13 @@ const themeClasses: Record<CanvasTheme, string> = {
   reading: 'theme-reading',
 };
 
+const predefinedPenColors = [
+  { name: 'Black', value: 'hsl(0 0% 0%)' },
+  { name: 'Red', value: 'hsl(0 70% 50%)' },
+  { name: 'Blue', value: 'hsl(220 70% 50%)' },
+  { name: 'Green', value: 'hsl(145 60% 40%)' },
+  { name: 'Yellow', value: 'hsl(60 90% 50%)' },
+];
 
 interface SavedDraft {
   id: string;
@@ -76,11 +85,15 @@ export default function WhiteboardPage() {
   const [isDraftsDialogOpen, setIsDraftsDialogOpen] = useState(false);
 
   const [currentTheme, setCurrentTheme] = useState<CanvasTheme>('whiteboard');
-  const [effectivePenColor, setEffectivePenColor] = useState('hsl(0 0% 0%)');
-  const [effectiveEraserColor, setEffectiveEraserColor] = useState('hsl(0 0% 100%)');
+  const [effectivePenColor, setEffectivePenColor] = useState('hsl(0 0% 0%)'); // Theme-derived pen color
+  const [effectiveEraserColor, setEffectiveEraserColor] = useState('hsl(0 0% 100%)'); // Canvas background
+
+  const [penWidth, setPenWidth] = useState<number>(3);
+  const [userSelectedPenColor, setUserSelectedPenColor] = useState<string | null>(null);
 
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  // Effect for theme loading and initial theme application
   useEffect(() => {
     const savedTheme = localStorage.getItem(LOCAL_STORAGE_THEME_KEY) as CanvasTheme | null;
     if (savedTheme && themeClasses[savedTheme]) {
@@ -88,82 +101,82 @@ export default function WhiteboardPage() {
     }
   }, []);
 
+  // Effect for applying theme, updating effective colors, and re-initializing canvas on theme change
   useEffect(() => {
     if (mainContainerRef.current) {
       Object.values(themeClasses).forEach(cls => mainContainerRef.current!.classList.remove(cls));
       mainContainerRef.current.classList.add(themeClasses[currentTheme]);
       localStorage.setItem(LOCAL_STORAGE_THEME_KEY, currentTheme);
 
-      setTimeout(() => {
+      setTimeout(() => { // Ensure CSS variables are applied and readable
         if (mainContainerRef.current) {
           const computedStyle = getComputedStyle(mainContainerRef.current);
-          const newEraserColor = `hsl(${computedStyle.getPropertyValue('--canvas-bg-hsl').trim()})`;
-          const newPenColor = `hsl(${computedStyle.getPropertyValue('--canvas-pen-hsl').trim()})`;
-          setEffectiveEraserColor(newEraserColor);
-          setEffectivePenColor(newPenColor);
+          const newBgColor = `hsl(${computedStyle.getPropertyValue('--canvas-bg-hsl').trim()})`;
+          const themeDefaultPenColor = `hsl(${computedStyle.getPropertyValue('--canvas-pen-hsl').trim()})`;
+          
+          setEffectiveEraserColor(newBgColor);
+          setEffectivePenColor(themeDefaultPenColor);
 
           const canvas = canvasRef.current;
           const context = canvas?.getContext('2d');
           if (!canvas || !context) return;
 
-          context.fillStyle = newEraserColor;
+          context.fillStyle = newBgColor; // Use the new background color for clearing
           context.fillRect(0, 0, canvas.width, canvas.height);
-
-          if (currentTool === 'pen') {
-            context.strokeStyle = newPenColor;
-            context.lineWidth = PEN_WIDTH;
-          } else {
-            context.strokeStyle = newEraserColor;
-            context.lineWidth = ERASER_WIDTH;
-          }
-          context.lineCap = 'round';
-          context.lineJoin = 'round';
-          context.globalCompositeOperation = 'source-over';
 
           if (canvas.width > 0 && canvas.height > 0) {
             const initialImageData = context.getImageData(0, 0, canvas.width, canvas.height);
-            setHistory([initialImageData]);
+            setHistory([initialImageData]); // Reset history with new themed background
           }
         }
       }, 0);
     }
-  }, [currentTheme, currentTool]);
+  }, [currentTheme]);
 
+
+  // Effect for setting current drawing context properties (pen/eraser style, width, color)
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !effectiveEraserColor || !effectivePenColor) return;
+    const context = canvas?.getContext('2d');
+    if (!context) return;
+
+    context.lineCap = 'round';
+    context.lineJoin = 'round';
+    context.globalCompositeOperation = 'source-over';
+
+    if (currentTool === 'pen') {
+      context.strokeStyle = userSelectedPenColor || effectivePenColor;
+      context.lineWidth = penWidth;
+    } else { // eraser
+      context.strokeStyle = effectiveEraserColor;
+      context.lineWidth = ERASER_WIDTH;
+    }
+  }, [currentTool, penWidth, userSelectedPenColor, effectivePenColor, effectiveEraserColor, canvasRef]);
+
+
+  // Initialize canvas on mount and load drafts
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
     const context = canvas.getContext('2d');
     if (!context) return;
 
     const parent = canvas.parentElement;
     if (!parent) return;
 
+    // Set initial canvas dimensions
     canvas.width = parent.clientWidth;
     canvas.height = parent.clientHeight;
 
-    context.fillStyle = effectiveEraserColor;
+    // Fill with initial background color (derived from default theme or loaded theme)
+    context.fillStyle = effectiveEraserColor; // Ensure this is set before first history save
     context.fillRect(0, 0, canvas.width, canvas.height);
 
     if (canvas.width > 0 && canvas.height > 0) {
         const initialImageData = context.getImageData(0, 0, canvas.width, canvas.height);
         setHistory([initialImageData]);
     }
-
-    if (currentTool === 'pen') {
-      context.strokeStyle = effectivePenColor;
-      context.lineWidth = PEN_WIDTH;
-    } else {
-      context.strokeStyle = effectiveEraserColor;
-      context.lineWidth = ERASER_WIDTH;
-    }
-    context.lineCap = 'round';
-    context.lineJoin = 'round';
-    context.globalCompositeOperation = 'source-over';
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveEraserColor, effectivePenColor]);
-
-  useEffect(() => {
+    
     const loadDraftsFromStorage = () => {
       const savedDraftsJson = localStorage.getItem(LOCAL_STORAGE_DRAFTS_KEY);
       if (savedDraftsJson) {
@@ -177,8 +190,11 @@ export default function WhiteboardPage() {
       }
     };
     loadDraftsFromStorage();
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Runs once on mount
 
+
+  // Resize observer
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -197,24 +213,24 @@ export default function WhiteboardPage() {
       currentCanvas.width = width;
       currentCanvas.height = height;
 
-      context.fillStyle = effectiveEraserColor;
+      context.fillStyle = effectiveEraserColor; // Use current theme bg for resize fill
       context.fillRect(0, 0, currentCanvas.width, currentCanvas.height);
 
       const tempImg = new window.Image();
       tempImg.onload = () => {
         context.drawImage(tempImg, 0, 0);
-
-         if (currentTool === 'pen') {
-          context.strokeStyle = effectivePenColor;
-          context.lineWidth = PEN_WIDTH;
-        } else {
-          context.strokeStyle = effectiveEraserColor;
-          context.lineWidth = ERASER_WIDTH;
-        }
+        // Re-apply current tool settings after resize
         context.lineCap = 'round';
         context.lineJoin = 'round';
         context.globalCompositeOperation = 'source-over';
-        saveCanvasState();
+        if (currentTool === 'pen') {
+          context.strokeStyle = userSelectedPenColor || effectivePenColor;
+          context.lineWidth = penWidth;
+        } else { // eraser
+          context.strokeStyle = effectiveEraserColor;
+          context.lineWidth = ERASER_WIDTH;
+        }
+        saveCanvasState(); // Save the resized state
       }
       const tempCanvas = document.createElement('canvas');
       tempCanvas.width = currentImageData.width;
@@ -224,19 +240,19 @@ export default function WhiteboardPage() {
         tempCtx.putImageData(currentImageData, 0, 0);
         tempImg.src = tempCanvas.toDataURL();
       } else {
-        if (currentCanvas.width === currentImageData.width && currentCanvas.height === currentImageData.height) {
+         if (currentCanvas.width === currentImageData.width && currentCanvas.height === currentImageData.height) {
            context.putImageData(currentImageData, 0, 0);
-        }
-         if (currentTool === 'pen') {
-          context.strokeStyle = effectivePenColor;
-          context.lineWidth = PEN_WIDTH;
-        } else {
-          context.strokeStyle = effectiveEraserColor;
-          context.lineWidth = ERASER_WIDTH;
         }
         context.lineCap = 'round';
         context.lineJoin = 'round';
         context.globalCompositeOperation = 'source-over';
+        if (currentTool === 'pen') {
+          context.strokeStyle = userSelectedPenColor || effectivePenColor;
+          context.lineWidth = penWidth;
+        } else { // eraser
+          context.strokeStyle = effectiveEraserColor;
+          context.lineWidth = ERASER_WIDTH;
+        }
         saveCanvasState();
       }
     });
@@ -250,8 +266,8 @@ export default function WhiteboardPage() {
         resizeObserver.unobserve(parentEl);
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentTool, effectiveEraserColor, effectivePenColor]);
+  }, [currentTool, effectiveEraserColor, effectivePenColor, penWidth, userSelectedPenColor]);
+
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -304,8 +320,8 @@ export default function WhiteboardPage() {
         context.lineCap = 'round';
         context.lineJoin = 'round';
       if (currentTool === 'pen') {
-        context.strokeStyle = effectivePenColor;
-        context.lineWidth = PEN_WIDTH;
+        context.strokeStyle = userSelectedPenColor || effectivePenColor;
+        context.lineWidth = penWidth;
       } else {
         context.strokeStyle = effectiveEraserColor;
         context.lineWidth = ERASER_WIDTH;
@@ -370,8 +386,8 @@ export default function WhiteboardPage() {
     const previousCompositeOp = context.globalCompositeOperation;
 
     context.globalCompositeOperation = 'source-over';
-    context.font = '16px Arial';
-    context.fillStyle = effectivePenColor;
+    context.font = '16px Arial'; // Consider making font size/family configurable
+    context.fillStyle = userSelectedPenColor || effectivePenColor;
     context.textBaseline = 'top';
     context.fillText(text, x, y);
 
@@ -413,14 +429,13 @@ export default function WhiteboardPage() {
     context.fillStyle = effectiveEraserColor;
     context.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Explicitly re-set drawing context properties for the current tool
     context.globalCompositeOperation = 'source-over';
     context.lineCap = 'round';
     context.lineJoin = 'round';
     if (currentTool === 'pen') {
-      context.strokeStyle = effectivePenColor;
-      context.lineWidth = PEN_WIDTH;
-    } else { // currentTool is 'eraser'
+      context.strokeStyle = userSelectedPenColor || effectivePenColor;
+      context.lineWidth = penWidth;
+    } else { 
       context.strokeStyle = effectiveEraserColor;
       context.lineWidth = ERASER_WIDTH;
     }
@@ -443,23 +458,9 @@ export default function WhiteboardPage() {
   };
 
   const handleToggleEraser = () => {
-    setCurrentTool(prevTool => {
-      const newTool = prevTool === 'pen' ? 'eraser' : 'pen';
-      const canvas = canvasRef.current;
-      const context = canvas?.getContext('2d');
-      if (context) {
-        if (newTool === 'pen') {
-          context.strokeStyle = effectivePenColor;
-          context.lineWidth = PEN_WIDTH;
-        } else {
-          context.strokeStyle = effectiveEraserColor;
-          context.lineWidth = ERASER_WIDTH;
-        }
-      }
-      return newTool;
-    });
+    setCurrentTool(prevTool => prevTool === 'pen' ? 'eraser' : 'pen');
   };
-
+  
   const handleSaveCanvasDraft = (type: 'save' | 'saveAs' = 'save') => {
     const canvas = canvasRef.current;
      if (!canvas || canvas.width === 0 || canvas.height === 0) {
@@ -545,7 +546,6 @@ export default function WhiteboardPage() {
       return;
     }
     
-    // Type is 'save'
     try {
       const draftName = `${t('whiteboard.draftNamePrefix')} ${new Date().toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' })}`;
       const newDraft: SavedDraft = {
@@ -586,22 +586,23 @@ export default function WhiteboardPage() {
 
     const img = new window.Image();
     img.onload = () => {
-      context.fillStyle = effectiveEraserColor;
+      context.fillStyle = effectiveEraserColor; // Use current theme's bg
       context.fillRect(0, 0, canvas.width, canvas.height);
       context.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-      if (currentTool === 'pen') {
-        context.strokeStyle = effectivePenColor;
-        context.lineWidth = PEN_WIDTH;
-      } else {
-        context.strokeStyle = effectiveEraserColor;
-        context.lineWidth = ERASER_WIDTH;
-      }
+      // Re-apply current tool settings after loading draft
       context.lineCap = 'round';
       context.lineJoin = 'round';
       context.globalCompositeOperation = 'source-over';
+      if (currentTool === 'pen') {
+        context.strokeStyle = userSelectedPenColor || effectivePenColor;
+        context.lineWidth = penWidth;
+      } else { // eraser
+        context.strokeStyle = effectiveEraserColor;
+        context.lineWidth = ERASER_WIDTH;
+      }
 
-      saveCanvasState();
+      saveCanvasState(); // Save the loaded state as current history base
       const { id: toastId } = toast({ title: t('whiteboard.draftLoadedTitle'), description: t('whiteboard.draftLoadedDescription', { draftName: draftToLoad.name }) });
       setTimeout(() => dismissToast(toastId), 2000);
       setIsDraftsDialogOpen(false);
@@ -637,94 +638,6 @@ export default function WhiteboardPage() {
     }
   };
 
-
-  const handleDownloadCanvas = (asDefaultName: boolean = true) => {
-    const canvas = canvasRef.current;
-    if (!canvas || canvas.width === 0 || canvas.height === 0) {
-      const { id: toastId } = toast({
-        variant: "destructive",
-        title: t('whiteboard.downloadErrorTitle'),
-        description: t('whiteboard.canvasNotReadyError'),
-      });
-      setTimeout(() => { dismissToast(toastId); }, 3000);
-      return;
-    }
-
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = canvas.width;
-    tempCanvas.height = canvas.height;
-    const tempCtx = tempCanvas.getContext('2d');
-
-    if (!tempCtx) {
-       const { id: toastId } = toast({
-        variant: "destructive",
-        title: t('whiteboard.downloadErrorTitle'),
-        description: t('whiteboard.downloadErrorDescription'),
-      });
-      setTimeout(() => { dismissToast(toastId); }, 3000);
-      return;
-    }
-
-    tempCtx.fillStyle = effectiveEraserColor; // Use current theme's background
-    tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-    
-    let blankCanvasDataUrl: string;
-    try {
-        blankCanvasDataUrl = tempCanvas.toDataURL('image/png');
-    } catch (e) {
-        console.error("Error getting blank canvas data URL for download check:", e);
-        const { id: toastId } = toast({
-            variant: "destructive",
-            title: t('whiteboard.downloadErrorTitle'),
-            description: t('whiteboard.downloadErrorDescription'),
-        });
-        setTimeout(() => { dismissToast(toastId); }, 3000);
-        return;
-    }
-
-    let currentCanvasDataUrl: string;
-    try {
-        currentCanvasDataUrl = canvas.toDataURL('image/png');
-    } catch (e) {
-        console.error("Error getting current canvas data URL for download:", e);
-        const { id: toastId } = toast({
-            variant: "destructive",
-            title: t('whiteboard.downloadErrorTitle'),
-            description: t('whiteboard.downloadErrorDescription'),
-        });
-        setTimeout(() => { dismissToast(toastId); }, 3000);
-        return;
-    }
-
-    if (currentCanvasDataUrl === blankCanvasDataUrl) {
-        const { id: toastId } = toast({
-            title: t('whiteboard.emptyCanvasDownloadTitle'),
-            description: t('whiteboard.emptyCanvasDownloadDescription'),
-        });
-        setTimeout(() => {
-            dismissToast(toastId);
-        }, 3000);
-        return;
-    }
-
-    const link = document.createElement('a');
-    if (asDefaultName) {
-        link.download = 'whiteboard.png';
-    } else {
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        link.download = `whiteboard-${timestamp}.png`;
-    }
-    link.href = currentCanvasDataUrl;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    const { id: toastId } = toast({
-      title: t('toast.downloadedTitle'),
-      description: t('toast.downloadedDescription', { filename: link.download }),
-    });
-    setTimeout(() => dismissToast(toastId), 2000);
-  };
-
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(err => {
@@ -743,6 +656,7 @@ export default function WhiteboardPage() {
   };
 
   const undoDisabled = history.length <= 1;
+  const finalPenColor = userSelectedPenColor || effectivePenColor;
 
   return (
     <div
@@ -796,7 +710,7 @@ export default function WhiteboardPage() {
             top: `${textInputPosition.y}px`,
             minWidth: '100px',
             maxWidth: '300px',
-            color: effectivePenColor,
+            color: finalPenColor,
             backgroundColor: effectiveEraserColor,
           }}
           placeholder={t('whiteboard.textInputPlaceholder')}
@@ -804,6 +718,64 @@ export default function WhiteboardPage() {
       )}
       <TooltipProvider>
         <div className="absolute bottom-4 right-4 z-10 flex gap-2">
+           <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="icon" aria-label={t('penSettings.title')}>
+                <PenLine className="h-5 w-5" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-4">
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="pen-width" className="text-sm font-medium leading-none">
+                    {t('penSettings.width')} ({penWidth}px)
+                  </Label>
+                  <Slider
+                    id="pen-width"
+                    min={1}
+                    max={20}
+                    step={1}
+                    value={[penWidth]}
+                    onValueChange={(value) => setPenWidth(value[0])}
+                    className="w-full"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium leading-none">{t('penSettings.color')}</Label>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setUserSelectedPenColor(null)}
+                      className={cn(!userSelectedPenColor && "ring-2 ring-primary")}
+                    >
+                      {t('penSettings.themeColor')}
+                    </Button>
+                    {predefinedPenColors.map((color) => (
+                      <Tooltip key={color.name}>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className={cn(
+                              "h-6 w-6 rounded-full border-2",
+                              userSelectedPenColor === color.value && "ring-2 ring-offset-2 ring-primary"
+                            )}
+                            style={{ backgroundColor: color.value }}
+                            onClick={() => setUserSelectedPenColor(color.value)}
+                            aria-label={color.name}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{t(`penSettings.colors.${color.name.toLowerCase()}` as any, color.name)}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -897,7 +869,7 @@ export default function WhiteboardPage() {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
+               <Button
                 variant={currentTool === 'eraser' ? 'default' : 'outline'}
                 size="icon"
                 onClick={handleToggleEraser}
@@ -972,4 +944,3 @@ export default function WhiteboardPage() {
     </div>
   );
 }
-
