@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -10,18 +11,18 @@ function debounce<F extends (...args: any[]) => any>(func: F, delay: number): (.
   };
 }
 
-export function useAutosave(
+export function useAutosave<T>(
   storageKey: string,
-  initialValue: string,
+  initialValue: T,
   saveDelay: number = 1000
-): [string, React.Dispatch<React.SetStateAction<string>>] {
-  const [value, setValue] = useState<string>(() => {
+): [T, React.Dispatch<React.SetStateAction<T>>] {
+  const [value, setValue] = useState<T>(() => {
     if (typeof window === 'undefined') {
       return initialValue;
     }
     try {
       const item = window.localStorage.getItem(storageKey);
-      return item ? item : initialValue; // Assuming string content, no JSON.parse initially
+      return item ? JSON.parse(item) : initialValue;
     } catch (error) {
       console.error(`Error reading localStorage key "${storageKey}":`, error);
       return initialValue;
@@ -29,10 +30,10 @@ export function useAutosave(
   });
 
   const debouncedSave = useCallback(
-    debounce((currentValue: string) => {
+    debounce((currentValue: T) => {
       if (typeof window !== 'undefined') {
         try {
-          window.localStorage.setItem(storageKey, currentValue);
+          window.localStorage.setItem(storageKey, JSON.stringify(currentValue));
         } catch (error) {
           console.error(`Error setting localStorage key "${storageKey}":`, error);
         }
@@ -49,3 +50,4 @@ export function useAutosave(
 
   return [value, setValue];
 }
+

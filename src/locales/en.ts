@@ -10,12 +10,23 @@ export default {
     organize: 'Organize Mode',
     switchToOrganize: 'Switch to Organize Mode',
     switchToDraft: 'Switch to Draft Mode',
-    organizeTitle: 'Text Organizer',
+    organizeTitle: 'Note Organizer', // Changed from "Text Organizer"
   },
   organizeMode: {
     placeholder: 'Start typing your notes here... Type / for commands.',
     switchToPreview: 'Switch to Preview Mode',
     switchToEdit: 'Switch to Edit Mode',
+  },
+  cornellNotes: {
+    titlePlaceholder: 'Untitled Note (Topic/Date)',
+    cuesArea: 'Cues / Questions',
+    cuesPlaceholder: 'Keywords, main ideas, questions...',
+    mainNotesArea: 'Main Notes',
+    mainNotesPlaceholder: 'Detailed notes taken during lecture or reading...',
+    summaryArea: 'Summary',
+    summaryPlaceholder: 'Summarize the main points of this page...',
+    untitled: 'Untitled',
+    emptySection: '(This section is empty)',
   },
   languageSwitcher: {
     english: 'English',

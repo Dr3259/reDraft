@@ -3,6 +3,7 @@
 
 import * as React from 'react';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { useI18n } from '@/locales/client';
 import { useAutosave } from '@/hooks/useAutosave';
 import { SlashCommandPalette, type Command } from '@/components/slash-command-palette';
@@ -21,8 +22,23 @@ import { jsPDF } from "jspdf";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
 
-const LOCAL_STORAGE_ORGANIZE_NOTE_KEY = 'organizeModeNote_v1';
+const LOCAL_STORAGE_CORNELL_NOTE_KEY = 'cornellNote_v1';
+
+interface CornellNote {
+  title: string;
+  cues: string;
+  mainNotes: string;
+  summary: string;
+}
+
+const initialCornellNote: CornellNote = {
+  title: '',
+  cues: '',
+  mainNotes: '',
+  summary: '',
+};
 
 const availableCommands: Command[] = [
   { id: 'h1', labelKey: 'slashCommands.heading1', icon: Heading1, action: '# ' },
@@ -39,9 +55,10 @@ type OrganizeViewMode = 'edit' | 'preview';
 export function OrganizeModeView() {
   const t = useI18n();
   const { toast, dismiss: dismissToast } = useToast();
-  const [noteContent, setNoteContent] = useAutosave(LOCAL_STORAGE_ORGANIZE_NOTE_KEY, '');
-  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
-  const popoverAnchorRef = React.useRef<HTMLDivElement>(null);
+  const [cornellNote, setCornellNote] = useAutosave<CornellNote>(LOCAL_STORAGE_CORNELL_NOTE_KEY, initialCornellNote);
+  
+  const mainNotesTextareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const popoverAnchorRef = React.useRef<HTMLDivElement>(null); // For slash command palette positioning
 
   const [isSlashPaletteOpen, setIsSlashPaletteOpen] = React.useState(false);
   const [slashQuery, setSlashQuery] = React.useState('');
@@ -52,9 +69,13 @@ export function OrganizeModeView() {
     setOrganizeViewMode(prev => prev === 'edit' ? 'preview' : 'edit');
   };
 
-  const handleTextChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleInputChange = (field: keyof CornellNote, value: string) => {
+    setCornellNote(prev => ({ ...prev, [field]: value }));
+  };
+  
+  const handleMainNotesChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = event.target.value;
-    setNoteContent(newValue);
+    handleInputChange('mainNotes', newValue);
 
     const cursorPos = event.target.selectionStart;
     const textBeforeCursor = newValue.substring(0, cursorPos);
@@ -71,9 +92,9 @@ export function OrganizeModeView() {
   };
 
   const handleCommandSelect = (command: Command) => {
-    if (!textareaRef.current) return;
+    if (!mainNotesTextareaRef.current) return;
 
-    const currentValue = textareaRef.current.value;
+    const currentValue = mainNotesTextareaRef.current.value;
     const queryLengthWithSlash = 1 + slashQuery.length;
     const startOfSlashCommand = slashTriggerPosition - queryLengthWithSlash;
 
@@ -84,7 +105,6 @@ export function OrganizeModeView() {
     
     let actionToInsert = command.action;
     if (command.id === 'hr') {
-      // Ensure HR is on a new line if the preceding character isn't already a newline
       if (startOfSlashCommand > 0 && currentValue.charAt(startOfSlashCommand - 1) !== '\n') {
         actionToInsert = '\n' + actionToInsert;
       }
@@ -94,21 +114,21 @@ export function OrganizeModeView() {
     const textAfterSlashCommand = currentValue.substring(slashTriggerPosition);
 
     const newText = textBeforeSlashCommand + actionToInsert + textAfterSlashCommand;
-    setNoteContent(newText);
+    handleInputChange('mainNotes', newText);
     setIsSlashPaletteOpen(false);
     setSlashQuery('');
 
     const newCursorPos = startOfSlashCommand + actionToInsert.length;
     setTimeout(() => {
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-        textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
+      if (mainNotesTextareaRef.current) {
+        mainNotesTextareaRef.current.focus();
+        mainNotesTextareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
       }
     }, 0);
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    const textarea = textareaRef.current;
+    const textarea = mainNotesTextareaRef.current; // Assuming keydowns are primarily for main notes
     if (!textarea) return;
   
     if (event.key === 'Enter') {
@@ -117,9 +137,7 @@ export function OrganizeModeView() {
       const lineStart = currentText.lastIndexOf('\n', cursorPos - 1) + 1;
       const currentLineText = currentText.substring(lineStart, cursorPos);
 
-      // Check if the current line up to the cursor (trimmed) is exactly '---'
       if (currentLineText.trim() === '---') {
-        // Further check if the entire line (not just up to cursor) is '---' or '--- ' etc.
         let lineEnd = currentText.indexOf('\n', cursorPos);
         if (lineEnd === -1) {
           lineEnd = currentText.length;
@@ -128,19 +146,16 @@ export function OrganizeModeView() {
 
         if (fullCurrentLine === '---') {
             event.preventDefault();
-            
             const textBefore = currentText.substring(0, lineStart);
-            const textAfter = currentText.substring(lineEnd); // Text after the current line's \n or end of string
-            
-            // Replace the current line with '---' and add a newline, then the rest of the text
+            const textAfter = currentText.substring(lineEnd);
             const newText = `${textBefore}---\n${textAfter.startsWith('\n') ? textAfter.substring(1) : textAfter}`;
-            setNoteContent(newText);
+            handleInputChange('mainNotes', newText);
     
             const newCursorPos = `${textBefore}---\n`.length;
             setTimeout(() => {
-              if (textareaRef.current) {
-                textareaRef.current.focus();
-                textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
+              if (textarea.focus) {
+                textarea.focus();
+                textarea.setSelectionRange(newCursorPos, newCursorPos);
               }
             }, 0);
             return;
@@ -168,11 +183,20 @@ export function OrganizeModeView() {
     URL.revokeObjectURL(url);
   };
 
+  const formatCornellNoteForExport = () => {
+    let content = `# ${cornellNote.title || t('cornellNotes.untitled')}\n\n`;
+    content += `## ${t('cornellNotes.cuesArea')}\n${cornellNote.cues || t('cornellNotes.emptySection')}\n\n`;
+    content += `## ${t('cornellNotes.mainNotesArea')}\n${cornellNote.mainNotes || t('cornellNotes.emptySection')}\n\n`;
+    content += `## ${t('cornellNotes.summaryArea')}\n${cornellNote.summary || t('cornellNotes.emptySection')}\n`;
+    return content;
+  };
+
   const handleExport = (format: 'txt' | 'md' | 'pdf') => {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filenameBase = `note-${timestamp}`;
+    const filenameBase = `cornell-note-${timestamp}`;
+    const exportContent = formatCornellNoteForExport();
 
-    if (noteContent.trim() === '') {
+    if (!cornellNote.title && !cornellNote.cues && !cornellNote.mainNotes && !cornellNote.summary) {
       const { id: toastId } = toast({
         variant: "destructive",
         title: t('export.emptyNoteErrorTitle'),
@@ -183,15 +207,10 @@ export function OrganizeModeView() {
     }
 
     try {
-      if (format === 'txt') {
-        const filename = `${filenameBase}.txt`;
-        downloadFile(filename, noteContent, 'text/plain;charset=utf-8');
-        const { id: toastId } = toast({ title: t('toast.exportedAs', { format: '.txt' }), description: t('toast.downloadedDescription', {filename}) });
-        setTimeout(() => dismissToast(toastId), 2000);
-      } else if (format === 'md') {
-        const filename = `${filenameBase}.md`;
-        downloadFile(filename, noteContent, 'text/markdown;charset=utf-8');
-        const { id: toastId } = toast({ title: t('toast.exportedAs', { format: '.md' }), description: t('toast.downloadedDescription', {filename}) });
+      if (format === 'txt' || format === 'md') {
+        const filename = `${filenameBase}.${format}`;
+        downloadFile(filename, exportContent, format === 'txt' ? 'text/plain;charset=utf-8' : 'text/markdown;charset=utf-8');
+        const { id: toastId } = toast({ title: t('toast.exportedAs', { format: `.${format}` }), description: t('toast.downloadedDescription', {filename}) });
         setTimeout(() => dismissToast(toastId), 2000);
       } else if (format === 'pdf') {
         const filename = `${filenameBase}.pdf`;
@@ -200,7 +219,7 @@ export function OrganizeModeView() {
         const margin = 15; 
         const maxLineWidth = pageWidth - margin * 2;
         
-        const lines = doc.splitTextToSize(noteContent, maxLineWidth);
+        const lines = doc.splitTextToSize(exportContent, maxLineWidth);
         doc.text(lines, margin, margin);
         doc.save(filename);
         const { id: toastId } = toast({ title: t('toast.exportedAs', { format: '.pdf' }), description: t('toast.downloadedDescription', {filename}) });
@@ -217,13 +236,29 @@ export function OrganizeModeView() {
     }
   };
 
+  const RenderSection = ({ content, placeholder }: { content: string; placeholder: string }) => {
+    if (organizeViewMode === 'preview') {
+      return (
+        <ScrollArea className="h-full p-3">
+          <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose dark:prose-invert max-w-none">
+            {content || `*${placeholder}*`}
+          </ReactMarkdown>
+        </ScrollArea>
+      );
+    }
+    return null; // Textarea is rendered directly for edit mode
+  };
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-background text-foreground">
-      <div className="flex justify-between items-center p-4 sm:p-6 md:p-8 border-b flex-shrink-0">
-        <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">
-          {t('appModes.organizeTitle')}
-        </h1>
+      <div className="flex justify-between items-center p-4 border-b flex-shrink-0">
+        <Input
+          placeholder={t('cornellNotes.titlePlaceholder')}
+          value={cornellNote.title}
+          onChange={(e) => handleInputChange('title', e.target.value)}
+          className="text-xl font-semibold border-none focus-visible:ring-0 focus-visible:ring-offset-0 flex-grow max-w-md mr-4 bg-transparent"
+          aria-label={t('cornellNotes.titlePlaceholder')}
+        />
         <div className="flex items-center space-x-2">
           <TooltipProvider>
             <Tooltip>
@@ -262,40 +297,82 @@ export function OrganizeModeView() {
         </div>
       </div>
 
-      <div className="flex-grow overflow-hidden">
-        {organizeViewMode === 'edit' ? (
-          <div ref={popoverAnchorRef} className="relative flex flex-col h-full">
-            <ScrollArea className="flex-grow h-full">
+      {/* Main Cornell Layout */}
+      <div className="flex flex-grow overflow-hidden" ref={popoverAnchorRef}>
+        {/* Cues Area (Left) */}
+        <div className="w-1/3 lg:w-1/4 flex flex-col border-r">
+          <div className="p-2 border-b">
+            <h2 className="font-semibold text-sm text-muted-foreground">{t('cornellNotes.cuesArea')}</h2>
+          </div>
+          <div className="flex-grow relative">
+            {organizeViewMode === 'edit' ? (
               <Textarea
-                ref={textareaRef}
-                placeholder={t('organizeMode.placeholder')}
-                value={noteContent}
-                onChange={handleTextChange}
-                onKeyDown={handleKeyDown}
-                className="w-full h-full resize-none border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-4 md:p-6 text-base leading-relaxed bg-transparent placeholder-muted-foreground/70"
-                aria-label={t('organizeMode.placeholder')}
+                placeholder={t('cornellNotes.cuesPlaceholder')}
+                value={cornellNote.cues}
+                onChange={(e) => handleInputChange('cues', e.target.value)}
+                className="w-full h-full resize-none border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-3 text-sm leading-relaxed bg-transparent"
+                aria-label={t('cornellNotes.cuesPlaceholder')}
               />
-            </ScrollArea>
-            {popoverAnchorRef.current && (
-              <SlashCommandPalette
-                isOpen={isSlashPaletteOpen}
-                onOpenChange={setIsSlashPaletteOpen}
-                commands={availableCommands}
-                onCommandSelect={handleCommandSelect}
-                query={slashQuery}
-                targetRef={popoverAnchorRef}
-              />
+            ) : (
+              <RenderSection content={cornellNote.cues} placeholder={t('cornellNotes.cuesPlaceholder')} />
             )}
           </div>
-        ) : (
-          <ScrollArea className="h-full overflow-y-auto">
-            <div className="p-4 md:p-6 prose dark:prose-invert lg:prose-xl max-w-none">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {noteContent}
-              </ReactMarkdown>
+        </div>
+
+        {/* Main Notes & Summary Container (Right) */}
+        <div className="w-2/3 lg:w-3/4 flex flex-col">
+          {/* Main Notes Area */}
+          <div className="flex-grow flex flex-col" style={{minHeight: '70%'}}>
+             <div className="p-2 border-b">
+                <h2 className="font-semibold text-sm text-muted-foreground">{t('cornellNotes.mainNotesArea')}</h2>
+             </div>
+            <div className="flex-grow relative">
+              {organizeViewMode === 'edit' ? (
+                <Textarea
+                  ref={mainNotesTextareaRef}
+                  placeholder={t('cornellNotes.mainNotesPlaceholder')}
+                  value={cornellNote.mainNotes}
+                  onChange={handleMainNotesChange}
+                  onKeyDown={handleKeyDown}
+                  className="w-full h-full resize-none border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-3 text-sm leading-relaxed bg-transparent"
+                  aria-label={t('cornellNotes.mainNotesPlaceholder')}
+                />
+              ) : (
+                <RenderSection content={cornellNote.mainNotes} placeholder={t('cornellNotes.mainNotesPlaceholder')} />
+              )}
+              {popoverAnchorRef.current && mainNotesTextareaRef.current && organizeViewMode === 'edit' && (
+                <SlashCommandPalette
+                  isOpen={isSlashPaletteOpen}
+                  onOpenChange={setIsSlashPaletteOpen}
+                  commands={availableCommands}
+                  onCommandSelect={handleCommandSelect}
+                  query={slashQuery}
+                  targetRef={popoverAnchorRef} // Position relative to the whole notes area
+                />
+              )}
             </div>
-          </ScrollArea>
-        )}
+          </div>
+
+          {/* Summary Area */}
+          <div className="flex flex-col border-t" style={{minHeight: '30%'}}>
+            <div className="p-2 border-b">
+                <h2 className="font-semibold text-sm text-muted-foreground">{t('cornellNotes.summaryArea')}</h2>
+            </div>
+            <div className="flex-grow relative">
+            {organizeViewMode === 'edit' ? (
+              <Textarea
+                placeholder={t('cornellNotes.summaryPlaceholder')}
+                value={cornellNote.summary}
+                onChange={(e) => handleInputChange('summary', e.target.value)}
+                className="w-full h-full resize-none border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-3 text-sm leading-relaxed bg-transparent"
+                aria-label={t('cornellNotes.summaryPlaceholder')}
+              />
+            ) : (
+              <RenderSection content={cornellNote.summary} placeholder={t('cornellNotes.summaryPlaceholder')} />
+            )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

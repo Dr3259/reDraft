@@ -10,12 +10,23 @@ export default {
     organize: '整理模式',
     switchToOrganize: '切换到整理模式',
     switchToDraft: '切换到草稿本模式',
-    organizeTitle: '文本整理器',
+    organizeTitle: '笔记整理器', // 从 "文本整理器" 更改
   },
   organizeMode: {
     placeholder: '在此开始输入您的笔记... 输入 / 获取命令。',
     switchToPreview: '切换到预览模式',
     switchToEdit: '切换到编辑模式',
+  },
+  cornellNotes: {
+    titlePlaceholder: '无标题笔记 (主题/日期)',
+    cuesArea: '提示/线索区',
+    cuesPlaceholder: '关键词、主要观点、问题...',
+    mainNotesArea: '主要笔记区',
+    mainNotesPlaceholder: '听课或阅读时记录的详细笔记...',
+    summaryArea: '总结区',
+    summaryPlaceholder: '总结本页笔记的主要内容...',
+    untitled: '无标题',
+    emptySection: '(此区域为空)',
   },
   languageSwitcher: {
     english: '英文',
