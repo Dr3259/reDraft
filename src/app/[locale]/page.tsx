@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useI18n, useCurrentLocale } from '@/locales/client';
 import { LanguageSwitcher } from '@/components/language-switcher';
-import { Eraser, Trash2, Undo2, Save, Download, FolderClock, Palette } from 'lucide-react';
+import { Eraser, Trash2, Undo2, Save, Download, FolderClock, Palette, Trash } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -51,7 +51,7 @@ interface SavedDraft {
   id: string;
   name: string;
   dataUrl: string;
-  createdAt: string; 
+  createdAt: string;
 }
 
 export default function WhiteboardPage() {
@@ -76,8 +76,8 @@ export default function WhiteboardPage() {
   const [isDraftsDialogOpen, setIsDraftsDialogOpen] = useState(false);
 
   const [currentTheme, setCurrentTheme] = useState<CanvasTheme>('whiteboard');
-  const [effectivePenColor, setEffectivePenColor] = useState('hsl(0 0% 0%)'); 
-  const [effectiveEraserColor, setEffectiveEraserColor] = useState('hsl(0 0% 100%)'); 
+  const [effectivePenColor, setEffectivePenColor] = useState('hsl(0 0% 0%)');
+  const [effectiveEraserColor, setEffectiveEraserColor] = useState('hsl(0 0% 100%)');
 
   useEffect(() => {
     const savedTheme = localStorage.getItem(LOCAL_STORAGE_THEME_KEY) as CanvasTheme | null;
@@ -103,21 +103,21 @@ export default function WhiteboardPage() {
           const canvas = canvasRef.current;
           const context = canvas?.getContext('2d');
           if (!canvas || !context) return;
-          
+
           context.fillStyle = newEraserColor;
           context.fillRect(0, 0, canvas.width, canvas.height);
-          
+
           if (currentTool === 'pen') {
             context.strokeStyle = newPenColor;
             context.lineWidth = PEN_WIDTH;
-          } else { 
-            context.strokeStyle = newEraserColor; 
+          } else {
+            context.strokeStyle = newEraserColor;
             context.lineWidth = ERASER_WIDTH;
           }
           context.lineCap = 'round';
           context.lineJoin = 'round';
           context.globalCompositeOperation = 'source-over';
-          
+
           if (canvas.width > 0 && canvas.height > 0) {
             const initialImageData = context.getImageData(0, 0, canvas.width, canvas.height);
             setHistory([initialImageData]);
@@ -138,7 +138,7 @@ export default function WhiteboardPage() {
 
     canvas.width = parent.clientWidth;
     canvas.height = parent.clientHeight;
-    
+
     context.fillStyle = effectiveEraserColor;
     context.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -150,8 +150,8 @@ export default function WhiteboardPage() {
     if (currentTool === 'pen') {
       context.strokeStyle = effectivePenColor;
       context.lineWidth = PEN_WIDTH;
-    } else { 
-      context.strokeStyle = effectiveEraserColor; 
+    } else {
+      context.strokeStyle = effectiveEraserColor;
       context.lineWidth = ERASER_WIDTH;
     }
     context.lineCap = 'round';
@@ -159,7 +159,7 @@ export default function WhiteboardPage() {
     context.globalCompositeOperation = 'source-over';
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveEraserColor, effectivePenColor]); 
+  }, [effectiveEraserColor, effectivePenColor]);
 
   useEffect(() => {
     const loadDraftsFromStorage = () => {
@@ -184,20 +184,20 @@ export default function WhiteboardPage() {
     const resizeObserver = new ResizeObserver(entries => {
       const entry = entries[0];
       const { width, height } = entry.contentRect;
-      
+
       const currentCanvas = canvasRef.current;
       if (!currentCanvas) return;
       const context = currentCanvas.getContext('2d');
       if (!context) return;
-      
+
       const currentImageData = context.getImageData(0, 0, currentCanvas.width, currentCanvas.height);
-      
+
       currentCanvas.width = width;
       currentCanvas.height = height;
-      
+
       context.fillStyle = effectiveEraserColor;
       context.fillRect(0, 0, currentCanvas.width, currentCanvas.height);
-      
+
       const tempImg = new window.Image();
       tempImg.onload = () => {
         context.drawImage(tempImg, 0, 0);
@@ -212,7 +212,7 @@ export default function WhiteboardPage() {
         context.lineCap = 'round';
         context.lineJoin = 'round';
         context.globalCompositeOperation = 'source-over';
-        saveCanvasState(); 
+        saveCanvasState();
       }
       const tempCanvas = document.createElement('canvas');
       tempCanvas.width = currentImageData.width;
@@ -281,7 +281,7 @@ export default function WhiteboardPage() {
   };
 
   const startDrawing = (event: React.MouseEvent<HTMLCanvasElement>) => {
-    if (event.button !== 0) return; 
+    if (event.button !== 0) return;
     const { x, y } = getMousePosition(event);
     setIsDrawing(true);
     setLastPosition({ x, y });
@@ -291,14 +291,14 @@ export default function WhiteboardPage() {
       if (currentTool === 'pen') {
         context.strokeStyle = effectivePenColor;
         context.lineWidth = PEN_WIDTH;
-      } else { 
+      } else {
         context.strokeStyle = effectiveEraserColor;
         context.lineWidth = ERASER_WIDTH;
       }
       context.lineCap = 'round';
       context.lineJoin = 'round';
       context.globalCompositeOperation = 'source-over';
-      
+
       context.beginPath();
       context.moveTo(x, y);
     }
@@ -329,12 +329,12 @@ export default function WhiteboardPage() {
 
   const handleContextMenu = (event: React.MouseEvent<HTMLCanvasElement>) => {
     event.preventDefault();
-    if (isDrawing) stopDrawing(); 
+    if (isDrawing) stopDrawing();
 
     const { x, y } = getMousePosition(event);
     setTextInputPosition({ x, y });
     setShowTextInput(true);
-    setTextInputValue(''); 
+    setTextInputValue('');
   };
 
   useEffect(() => {
@@ -359,8 +359,8 @@ export default function WhiteboardPage() {
     const previousCompositeOp = context.globalCompositeOperation;
 
     context.globalCompositeOperation = 'source-over';
-    context.font = '16px Arial'; 
-    context.fillStyle = effectivePenColor; 
+    context.font = '16px Arial';
+    context.fillStyle = effectivePenColor;
     context.textBaseline = 'top';
     context.fillText(text, x, y);
 
@@ -386,7 +386,7 @@ export default function WhiteboardPage() {
 
   const handleTextInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
-      event.preventDefault(); 
+      event.preventDefault();
       applyTextToCanvas();
     } else if (event.key === 'Escape') {
       setShowTextInput(false);
@@ -405,7 +405,7 @@ export default function WhiteboardPage() {
     if (currentTool === 'pen') {
       context.strokeStyle = effectivePenColor;
       context.lineWidth = PEN_WIDTH;
-    } else { 
+    } else {
       context.strokeStyle = effectiveEraserColor;
       context.lineWidth = ERASER_WIDTH;
     }
@@ -413,7 +413,7 @@ export default function WhiteboardPage() {
     context.lineJoin = 'round';
     context.globalCompositeOperation = 'source-over';
 
-    saveCanvasState(); 
+    saveCanvasState();
   };
 
   const handleUndo = () => {
@@ -421,7 +421,7 @@ export default function WhiteboardPage() {
     const context = canvas?.getContext('2d');
     if (!canvas || !context) return;
 
-    if (history.length > 1) { 
+    if (history.length > 1) {
       const newHistory = history.slice(0, -1);
       setHistory(newHistory);
       const prevState = newHistory[newHistory.length - 1];
@@ -478,7 +478,7 @@ export default function WhiteboardPage() {
 
     tempCtx.fillStyle = effectiveEraserColor;
     tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-    
+
     let blankCanvasDataUrl: string;
     try {
       blankCanvasDataUrl = tempCanvas.toDataURL('image/png');
@@ -547,7 +547,7 @@ export default function WhiteboardPage() {
       setTimeout(() => { dismissToast(toastId); }, 3000);
     }
   };
-  
+
   const handleLoadSpecificDraft = (draftId: string) => {
     const draftToLoad = drafts.find(d => d.id === draftId);
     if (!draftToLoad || !canvasRef.current) return;
@@ -556,33 +556,57 @@ export default function WhiteboardPage() {
     const context = canvas.getContext('2d');
     if (!context) return;
 
-    const img = new window.Image(); 
+    const img = new window.Image();
     img.onload = () => {
       context.fillStyle = effectiveEraserColor;
       context.fillRect(0, 0, canvas.width, canvas.height);
-      context.drawImage(img, 0, 0, canvas.width, canvas.height); 
-      
+      context.drawImage(img, 0, 0, canvas.width, canvas.height);
+
       if (currentTool === 'pen') {
         context.strokeStyle = effectivePenColor;
         context.lineWidth = PEN_WIDTH;
-      } else { 
-        context.strokeStyle = effectiveEraserColor; 
+      } else {
+        context.strokeStyle = effectiveEraserColor;
         context.lineWidth = ERASER_WIDTH;
       }
       context.lineCap = 'round';
       context.lineJoin = 'round';
       context.globalCompositeOperation = 'source-over';
-      
-      saveCanvasState(); 
+
+      saveCanvasState();
       const { id: toastId } = toast({ title: t('whiteboard.draftLoadedTitle'), description: t('whiteboard.draftLoadedDescription', { draftName: draftToLoad.name }) });
       setTimeout(() => dismissToast(toastId), 2000);
-      setIsDraftsDialogOpen(false); 
+      setIsDraftsDialogOpen(false);
     };
     img.onerror = () => {
       const { id: toastId } = toast({ variant: "destructive", title: t('whiteboard.draftLoadErrorTitle'), description: t('whiteboard.draftLoadErrorSpecificDescription') });
       setTimeout(() => dismissToast(toastId), 3000);
     };
     img.src = draftToLoad.dataUrl;
+  };
+
+  const handleDeleteDraft = (draftId: string) => {
+    const draftToDelete = drafts.find(d => d.id === draftId);
+    if (!draftToDelete) return;
+
+    const updatedDrafts = drafts.filter(d => d.id !== draftId);
+    try {
+      localStorage.setItem(LOCAL_STORAGE_DRAFTS_KEY, JSON.stringify(updatedDrafts));
+      setDrafts(updatedDrafts);
+      const { id: toastId } = toast({
+        title: t('whiteboard.draftDeletedTitle'),
+        description: t('whiteboard.draftDeletedDescription', { draftName: draftToDelete.name }),
+      });
+      setTimeout(() => dismissToast(toastId), 2000);
+    } catch (error) {
+      console.error("Error deleting draft from localStorage:", error);
+      const { id: toastId } = toast({
+        variant: "destructive",
+        title: t('whiteboard.draftDeleteErrorTitle'),
+        description: t('whiteboard.draftDeleteErrorDescription'),
+      });
+      setTimeout(() => dismissToast(toastId), 3000);
+    }
   };
 
 
@@ -612,7 +636,7 @@ export default function WhiteboardPage() {
       setTimeout(() => { dismissToast(toastId); }, 3000);
       return;
     }
-    
+
     tempCtx.fillStyle = effectiveEraserColor;
     tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
 
@@ -629,7 +653,7 @@ export default function WhiteboardPage() {
       setTimeout(() => { dismissToast(toastId); }, 3000);
       return;
     }
-    
+
     let currentCanvasDataUrl: string;
     try {
       currentCanvasDataUrl = canvas.toDataURL('image/png');
@@ -668,11 +692,11 @@ export default function WhiteboardPage() {
     });
     setTimeout(() => dismissToast(toastId), 2000);
   };
-  
+
   const undoDisabled = history.length <= 1;
 
   return (
-    <div 
+    <div
       ref={mainContainerRef}
       className={cn("w-screen h-screen relative overflow-hidden flex flex-col app-canvas-container", themeClasses[currentTheme])}
       >
@@ -696,17 +720,17 @@ export default function WhiteboardPage() {
         </DropdownMenu>
         <LanguageSwitcher />
       </div>
-      <div className="flex-grow relative"> 
+      <div className="flex-grow relative">
         <canvas
           ref={canvasRef}
           onMouseDown={startDrawing}
           onMouseMove={draw}
           onMouseUp={stopDrawing}
-          onMouseLeave={stopDrawing} 
+          onMouseLeave={stopDrawing}
           onContextMenu={handleContextMenu}
-          className="w-full h-full cursor-crosshair block" 
+          className="w-full h-full cursor-crosshair block"
           aria-label={t('whiteboard.canvasLabel')}
-          style={{ backgroundColor: effectiveEraserColor }} 
+          style={{ backgroundColor: effectiveEraserColor }}
         />
       </div>
       {showTextInput && (
@@ -723,8 +747,8 @@ export default function WhiteboardPage() {
             top: `${textInputPosition.y}px`,
             minWidth: '100px',
             maxWidth: '300px',
-            color: effectivePenColor, 
-            backgroundColor: effectiveEraserColor, 
+            color: effectivePenColor,
+            backgroundColor: effectiveEraserColor,
           }}
           placeholder={t('whiteboard.textInputPlaceholder')}
         />
@@ -733,9 +757,9 @@ export default function WhiteboardPage() {
         <div className="absolute bottom-4 right-4 z-10 flex gap-2">
            <Tooltip>
             <TooltipTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="icon" 
+              <Button
+                variant="outline"
+                size="icon"
                 onClick={() => setIsDraftsDialogOpen(true)}
                 aria-label={t('whiteboard.manageDraftsTooltip')}
               >
@@ -748,9 +772,9 @@ export default function WhiteboardPage() {
           </Tooltip>
            <Tooltip>
             <TooltipTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="icon" 
+              <Button
+                variant="outline"
+                size="icon"
                 onClick={handleSaveCanvasDraft}
                 aria-label={t('whiteboard.saveDraftTooltip')}
               >
@@ -763,9 +787,9 @@ export default function WhiteboardPage() {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="icon" 
+              <Button
+                variant="outline"
+                size="icon"
                 onClick={handleDownloadCanvas}
                 aria-label={t('whiteboard.downloadTooltip')}
               >
@@ -778,9 +802,9 @@ export default function WhiteboardPage() {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="icon" 
+              <Button
+                variant="outline"
+                size="icon"
                 onClick={handleClearCanvas}
                 aria-label={t('whiteboard.clearCanvasTooltip')}
               >
@@ -793,9 +817,9 @@ export default function WhiteboardPage() {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="icon" 
+              <Button
+                variant="outline"
+                size="icon"
                 onClick={handleUndo}
                 disabled={undoDisabled}
                 aria-label={t('whiteboard.undoTooltip')}
@@ -809,9 +833,9 @@ export default function WhiteboardPage() {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button 
-                variant={currentTool === 'eraser' ? 'secondary' : 'outline'} 
-                size="icon" 
+              <Button
+                variant={currentTool === 'eraser' ? 'secondary' : 'outline'}
+                size="icon"
                 onClick={handleToggleEraser}
                 aria-label={t('whiteboard.eraserTooltip')}
               >
@@ -852,9 +876,23 @@ export default function WhiteboardPage() {
                         </p>
                       </div>
                     </div>
-                    <Button variant="outline" size="sm" onClick={() => handleLoadSpecificDraft(draft.id)}>
-                      {t('whiteboard.loadDraftButton')}
-                    </Button>
+                    <div className="flex space-x-2">
+                      <Button variant="outline" size="sm" onClick={() => handleLoadSpecificDraft(draft.id)}>
+                        {t('whiteboard.loadDraftButton')}
+                      </Button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleDeleteDraft(draft.id)}>
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{t('whiteboard.deleteDraftTooltip')}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -870,4 +908,3 @@ export default function WhiteboardPage() {
     </div>
   );
 }
-
