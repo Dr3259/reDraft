@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useI18n } from '@/locales/client';
 import { useAutosave } from '@/hooks/useAutosave';
 import { SlashCommandPalette, type Command } from '@/components/slash-command-palette';
-import { Heading1, Heading2, Heading3, List, ListOrdered, ListTodo, Download, FileText, FileType, FileJson } from 'lucide-react'; // Added Download, FileText
+import { Heading1, Heading2, Heading3, List, ListOrdered, ListTodo, Download, FileText, FileType, FileJson, Minus } from 'lucide-react'; // Added Download, FileText, Minus
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -27,6 +27,7 @@ const availableCommands: Command[] = [
   { id: 'bulletList', labelKey: 'slashCommands.bulletedList', icon: List, action: '- ' },
   { id: 'numberList', labelKey: 'slashCommands.numberedList', icon: ListOrdered, action: '1. ' },
   { id: 'todoList', labelKey: 'slashCommands.todoList', icon: ListTodo, action: '- [ ] ' },
+  { id: 'hr', labelKey: 'slashCommands.horizontalRule', icon: Minus, action: '---\n' },
 ];
 
 export function OrganizeModeView() {
@@ -70,15 +71,23 @@ export function OrganizeModeView() {
         return;
     }
     
+    let actionToInsert = command.action;
+    // Ensure horizontal rule is on its own line, prepended by a newline if not already at the start of a line or after a newline.
+    if (command.id === 'hr') {
+      if (startOfSlashCommand > 0 && currentValue.charAt(startOfSlashCommand - 1) !== '\n') {
+        actionToInsert = '\n' + actionToInsert;
+      }
+    }
+    
     const textBeforeSlashCommand = currentValue.substring(0, startOfSlashCommand);
     const textAfterSlashCommand = currentValue.substring(slashTriggerPosition);
 
-    const newText = textBeforeSlashCommand + command.action + textAfterSlashCommand;
+    const newText = textBeforeSlashCommand + actionToInsert + textAfterSlashCommand;
     setNoteContent(newText);
     setIsSlashPaletteOpen(false);
     setSlashQuery('');
 
-    const newCursorPos = startOfSlashCommand + command.action.length;
+    const newCursorPos = startOfSlashCommand + actionToInsert.length;
     setTimeout(() => {
       if (textareaRef.current) {
         textareaRef.current.focus();
@@ -88,11 +97,41 @@ export function OrganizeModeView() {
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const textarea = textareaRef.current;
+    if (event.key === 'Enter' && textarea) {
+      const cursorPos = textarea.selectionStart;
+      const textBeforeCursor = textarea.value.substring(0, cursorPos);
+      const currentLineStart = textBeforeCursor.lastIndexOf('\n') + 1;
+      const currentLineText = textBeforeCursor.substring(currentLineStart).trim();
+
+      if (currentLineText === '---') {
+        event.preventDefault();
+        
+        const value = textarea.value;
+        // Ensure '---' is properly on its own line, then add a newline after it.
+        const textBeforeLine = value.substring(0, currentLineStart);
+        const textAfterCursor = value.substring(cursorPos);
+        
+        const newText = textBeforeLine + '---' + '\n' + textAfterCursor;
+        setNoteContent(newText);
+
+        const newCursorPos = currentLineStart + 3 + 1; // '---'.length + '\n'.length
+        setTimeout(() => {
+          if (textareaRef.current) {
+            textareaRef.current.focus();
+            textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
+          }
+        }, 0);
+        return; 
+      }
+    }
+    
     if (isSlashPaletteOpen) {
       if (event.key === 'Escape') {
         setIsSlashPaletteOpen(false);
         event.preventDefault();
       }
+      // Add other slash palette keyboard interactions here if needed (e.g., ArrowUp, ArrowDown, Enter for selection)
     }
   };
 
@@ -137,14 +176,9 @@ export function OrganizeModeView() {
         const filename = `${filenameBase}.pdf`;
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.getWidth();
-        const margin = 15; // Increased margin
+        const margin = 15; 
         const maxLineWidth = pageWidth - margin * 2;
         
-        // Set font that supports CJK characters if needed, though jsPDF's default (Helvetica) is limited.
-        // For broader Unicode, a custom font would be needed with jsPDF.
-        // This example uses default fonts.
-        // doc.setFont("helvetica"); // Example, already default
-
         const lines = doc.splitTextToSize(noteContent, maxLineWidth);
         doc.text(lines, margin, margin);
         doc.save(filename);
@@ -155,7 +189,7 @@ export function OrganizeModeView() {
       console.error("Export error:", error);
       const { id: toastId } = toast({
         variant: "destructive",
-        title: t('toast.pdfExportErrorTitle'), // Generic error for now
+        title: t('toast.pdfExportErrorTitle'), 
         description: t('toast.pdfExportErrorDescription'),
       });
       setTimeout(() => dismissToast(toastId), 3000);
@@ -182,14 +216,12 @@ export function OrganizeModeView() {
                 <span>{t('export.txt')}</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleExport('md')}>
-                {/* Using FileType as a generic icon for Markdown, or FileJson as it's structured text */}
-                {/* Lucide doesn't have a direct "Markdown" icon. FileText is also fine. */}
                 <FileType className="mr-2 h-4 w-4" /> 
                 <span>{t('export.md')}</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => handleExport('pdf')}>
-                <FileJson className="mr-2 h-4 w-4" /> {/* Using FileJson for PDF as it is often a binary format */}
+                <FileJson className="mr-2 h-4 w-4" /> 
                 <span>{t('export.pdf')}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>

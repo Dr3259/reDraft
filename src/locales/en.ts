@@ -13,10 +13,7 @@ export default {
     organizeTitle: 'Text Organizer',
   },
   organizeMode: {
-    editorTitle: 'Note Editor',
-    editorDescription: 'Write and organize your thoughts here.',
     placeholder: 'Start typing your notes here... Type / for commands.',
-    saveNote: 'Save Note', 
   },
   languageSwitcher: {
     english: 'English',
@@ -110,6 +107,7 @@ export default {
     bulletedList: 'Bulleted List',
     numberedList: 'Numbered List',
     todoList: 'Todo List',
+    horizontalRule: 'Horizontal Rule',
     noResults: 'No commands match',
   }
 } as const;

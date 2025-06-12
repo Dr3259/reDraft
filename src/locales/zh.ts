@@ -13,10 +13,7 @@ export default {
     organizeTitle: '文本整理器',
   },
   organizeMode: {
-    editorTitle: '笔记编辑器',
-    editorDescription: '在此撰写和整理您的想法。',
     placeholder: '在此开始输入您的笔记... 输入 / 获取命令。',
-    saveNote: '保存笔记',
   },
   languageSwitcher: {
     english: '英文',
@@ -110,6 +107,7 @@ export default {
     bulletedList: '项目符号列表',
     numberedList: '编号列表',
     todoList: '待办事项列表',
+    horizontalRule: '水平分割线',
     noResults: '未找到匹配的命令',
   }
 } as const;
