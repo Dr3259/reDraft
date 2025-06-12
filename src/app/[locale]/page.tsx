@@ -2,12 +2,12 @@
 "use client";
 
 import * as React from 'react';
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useI18n, useCurrentLocale } from '@/locales/client';
 import { LanguageSwitcher } from '@/components/language-switcher';
-import { Eraser, Trash2, Undo2, Download, FolderClock, Palette, Trash, Expand, Minimize, FileSignature, FileDown, PenLine } from 'lucide-react';
+import { Eraser, Trash2, Undo2, FolderClock, Palette, Trash, Expand, Minimize, FileSignature, FileDown, PenLine } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -85,15 +85,28 @@ export default function WhiteboardPage() {
   const [isDraftsDialogOpen, setIsDraftsDialogOpen] = useState(false);
 
   const [currentTheme, setCurrentTheme] = useState<CanvasTheme>('whiteboard');
-  const [effectivePenColor, setEffectivePenColor] = useState('hsl(0 0% 0%)'); // Theme-derived pen color
-  const [effectiveEraserColor, setEffectiveEraserColor] = useState('hsl(0 0% 100%)'); // Canvas background
+  const [effectivePenColor, setEffectivePenColor] = useState('hsl(0 0% 0%)');
+  const [effectiveEraserColor, setEffectiveEraserColor] = useState('hsl(0 0% 100%)');
 
   const [penWidth, setPenWidth] = useState<number>(3);
   const [userSelectedPenColor, setUserSelectedPenColor] = useState<string | null>(null);
 
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Effect for theme loading and initial theme application
+  // Refs for drawing properties to be used in stable callbacks
+  const currentToolRef = useRef(currentTool);
+  const userSelectedPenColorRef = useRef(userSelectedPenColor);
+  const effectivePenColorRef = useRef(effectivePenColor);
+  const penWidthRef = useRef(penWidth);
+  const effectiveEraserColorRef = useRef(effectiveEraserColor);
+
+  useEffect(() => { currentToolRef.current = currentTool; }, [currentTool]);
+  useEffect(() => { userSelectedPenColorRef.current = userSelectedPenColor; }, [userSelectedPenColor]);
+  useEffect(() => { effectivePenColorRef.current = effectivePenColor; }, [effectivePenColor]);
+  useEffect(() => { penWidthRef.current = penWidth; }, [penWidth]);
+  useEffect(() => { effectiveEraserColorRef.current = effectiveEraserColor; }, [effectiveEraserColor]);
+
+
   useEffect(() => {
     const savedTheme = localStorage.getItem(LOCAL_STORAGE_THEME_KEY) as CanvasTheme | null;
     if (savedTheme && themeClasses[savedTheme]) {
@@ -101,14 +114,13 @@ export default function WhiteboardPage() {
     }
   }, []);
 
-  // Effect for applying theme, updating effective colors, and re-initializing canvas on theme change
   useEffect(() => {
     if (mainContainerRef.current) {
       Object.values(themeClasses).forEach(cls => mainContainerRef.current!.classList.remove(cls));
       mainContainerRef.current.classList.add(themeClasses[currentTheme]);
       localStorage.setItem(LOCAL_STORAGE_THEME_KEY, currentTheme);
 
-      setTimeout(() => { // Ensure CSS variables are applied and readable
+      setTimeout(() => {
         if (mainContainerRef.current) {
           const computedStyle = getComputedStyle(mainContainerRef.current);
           const newBgColor = `hsl(${computedStyle.getPropertyValue('--canvas-bg-hsl').trim()})`;
@@ -121,20 +133,18 @@ export default function WhiteboardPage() {
           const context = canvas?.getContext('2d');
           if (!canvas || !context) return;
 
-          context.fillStyle = newBgColor; // Use the new background color for clearing
+          context.fillStyle = newBgColor;
           context.fillRect(0, 0, canvas.width, canvas.height);
 
           if (canvas.width > 0 && canvas.height > 0) {
             const initialImageData = context.getImageData(0, 0, canvas.width, canvas.height);
-            setHistory([initialImageData]); // Reset history with new themed background
+            setHistory([initialImageData]);
           }
         }
       }, 0);
     }
   }, [currentTheme]);
 
-
-  // Effect for setting current drawing context properties (pen/eraser style, width, color)
   useEffect(() => {
     const canvas = canvasRef.current;
     const context = canvas?.getContext('2d');
@@ -147,14 +157,32 @@ export default function WhiteboardPage() {
     if (currentTool === 'pen') {
       context.strokeStyle = userSelectedPenColor || effectivePenColor;
       context.lineWidth = penWidth;
-    } else { // eraser
+    } else { 
       context.strokeStyle = effectiveEraserColor;
       context.lineWidth = ERASER_WIDTH;
     }
-  }, [currentTool, penWidth, userSelectedPenColor, effectivePenColor, effectiveEraserColor, canvasRef]);
+  }, [currentTool, penWidth, userSelectedPenColor, effectivePenColor, effectiveEraserColor]);
 
 
-  // Initialize canvas on mount and load drafts
+  const saveCanvasState = useCallback(() => {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext('2d');
+    if (!canvas || !context || canvas.width === 0 || canvas.height === 0) return;
+    try {
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      setHistory(prev => {
+        const newHistory = [...prev, imageData];
+        if (newHistory.length > MAX_HISTORY_STEPS) {
+          return newHistory.slice(newHistory.length - MAX_HISTORY_STEPS);
+        }
+        return newHistory;
+      });
+    } catch (e) {
+      console.error("Failed to save canvas state:", e);
+    }
+  }, [canvasRef]);
+
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -164,12 +192,10 @@ export default function WhiteboardPage() {
     const parent = canvas.parentElement;
     if (!parent) return;
 
-    // Set initial canvas dimensions
     canvas.width = parent.clientWidth;
     canvas.height = parent.clientHeight;
 
-    // Fill with initial background color (derived from default theme or loaded theme)
-    context.fillStyle = effectiveEraserColor; // Ensure this is set before first history save
+    context.fillStyle = effectiveEraserColorRef.current; 
     context.fillRect(0, 0, canvas.width, canvas.height);
 
     if (canvas.width > 0 && canvas.height > 0) {
@@ -191,82 +217,127 @@ export default function WhiteboardPage() {
     };
     loadDraftsFromStorage();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Runs once on mount
+  }, []); 
 
 
-  // Resize observer
-  useEffect(() => {
+  const memoizedResizeCallback = useCallback((entries: ResizeObserverEntry[]) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const context = canvas.getContext('2d');
+    if (!context) return;
 
-    const resizeObserver = new ResizeObserver(entries => {
-      const entry = entries[0];
-      const { width, height } = entry.contentRect;
+    const entry = entries[0];
+    const { width, height } = entry.contentRect;
 
-      const currentCanvas = canvasRef.current;
-      if (!currentCanvas) return;
-      const context = currentCanvas.getContext('2d');
-      if (!context) return;
+    let currentImageData: ImageData | null = null;
+    if (canvas.width > 0 && canvas.height > 0) {
+      try {
+        currentImageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      } catch (e) {
+        console.error("Error getting image data during resize:", e);
+      }
+    }
 
-      const currentImageData = context.getImageData(0, 0, currentCanvas.width, currentCanvas.height);
+    canvas.width = width;
+    canvas.height = height;
 
-      currentCanvas.width = width;
-      currentCanvas.height = height;
+    context.fillStyle = effectiveEraserColorRef.current;
+    context.fillRect(0, 0, canvas.width, canvas.height);
 
-      context.fillStyle = effectiveEraserColor; // Use current theme bg for resize fill
-      context.fillRect(0, 0, currentCanvas.width, currentCanvas.height);
-
+    if (currentImageData) {
       const tempImg = new window.Image();
       tempImg.onload = () => {
         context.drawImage(tempImg, 0, 0);
-        // Re-apply current tool settings after resize
         context.lineCap = 'round';
         context.lineJoin = 'round';
         context.globalCompositeOperation = 'source-over';
-        if (currentTool === 'pen') {
-          context.strokeStyle = userSelectedPenColor || effectivePenColor;
-          context.lineWidth = penWidth;
-        } else { // eraser
-          context.strokeStyle = effectiveEraserColor;
+        if (currentToolRef.current === 'pen') {
+          context.strokeStyle = userSelectedPenColorRef.current || effectivePenColorRef.current;
+          context.lineWidth = penWidthRef.current;
+        } else {
+          context.strokeStyle = effectiveEraserColorRef.current;
           context.lineWidth = ERASER_WIDTH;
         }
-        saveCanvasState(); // Save the resized state
-      }
+        saveCanvasState();
+      };
+      tempImg.onerror = () => {
+        console.error("Error loading image for canvas restore.");
+        context.lineCap = 'round';
+        context.lineJoin = 'round';
+        context.globalCompositeOperation = 'source-over';
+        if (currentToolRef.current === 'pen') {
+          context.strokeStyle = userSelectedPenColorRef.current || effectivePenColorRef.current;
+          context.lineWidth = penWidthRef.current;
+        } else {
+          context.strokeStyle = effectiveEraserColorRef.current;
+          context.lineWidth = ERASER_WIDTH;
+        }
+      };
+
       const tempCanvas = document.createElement('canvas');
       tempCanvas.width = currentImageData.width;
       tempCanvas.height = currentImageData.height;
       const tempCtx = tempCanvas.getContext('2d');
       if (tempCtx) {
         tempCtx.putImageData(currentImageData, 0, 0);
-        tempImg.src = tempCanvas.toDataURL();
-      } else {
-         if (currentCanvas.width === currentImageData.width && currentCanvas.height === currentImageData.height) {
-           context.putImageData(currentImageData, 0, 0);
+        try {
+          tempImg.src = tempCanvas.toDataURL();
+        } catch (e) {
+            console.error("Error converting temp canvas to data URL:", e);
+            context.lineCap = 'round';
+            context.lineJoin = 'round';
+            context.globalCompositeOperation = 'source-over';
+            if (currentToolRef.current === 'pen') {
+                context.strokeStyle = userSelectedPenColorRef.current || effectivePenColorRef.current;
+                context.lineWidth = penWidthRef.current;
+            } else {
+                context.strokeStyle = effectiveEraserColorRef.current;
+                context.lineWidth = ERASER_WIDTH;
+            }
         }
+      } else {
         context.lineCap = 'round';
         context.lineJoin = 'round';
         context.globalCompositeOperation = 'source-over';
-        if (currentTool === 'pen') {
-          context.strokeStyle = userSelectedPenColor || effectivePenColor;
-          context.lineWidth = penWidth;
-        } else { // eraser
-          context.strokeStyle = effectiveEraserColor;
-          context.lineWidth = ERASER_WIDTH;
+        if (currentToolRef.current === 'pen') {
+            context.strokeStyle = userSelectedPenColorRef.current || effectivePenColorRef.current;
+            context.lineWidth = penWidthRef.current;
+        } else {
+            context.strokeStyle = effectiveEraserColorRef.current;
+            context.lineWidth = ERASER_WIDTH;
         }
-        saveCanvasState();
       }
-    });
-
-    const parentEl = canvas.parentElement;
-    if (parentEl) {
-      resizeObserver.observe(parentEl);
+    } else {
+        context.lineCap = 'round';
+        context.lineJoin = 'round';
+        context.globalCompositeOperation = 'source-over';
+        if (currentToolRef.current === 'pen') {
+            context.strokeStyle = userSelectedPenColorRef.current || effectivePenColorRef.current;
+            context.lineWidth = penWidthRef.current;
+        } else {
+            context.strokeStyle = effectiveEraserColorRef.current;
+            context.lineWidth = ERASER_WIDTH;
+        }
+        if (width > 0 && height > 0) saveCanvasState();
     }
+  }, [canvasRef, saveCanvasState]); // saveCanvasState is memoized, canvasRef is stable
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const parentEl = canvas.parentElement;
+    if (!parentEl) return;
+
+    const observer = new ResizeObserver(memoizedResizeCallback);
+    observer.observe(parentEl);
+
     return () => {
-      if (parentEl) {
-        resizeObserver.unobserve(parentEl);
+      if (parentEl) { // Ensure parentEl still exists for unobserve
+        observer.unobserve(parentEl);
       }
+      observer.disconnect(); // Also good practice to disconnect
     };
-  }, [currentTool, effectiveEraserColor, effectivePenColor, penWidth, userSelectedPenColor]);
+  }, [canvasRef, memoizedResizeCallback]);
 
 
   useEffect(() => {
@@ -279,24 +350,6 @@ export default function WhiteboardPage() {
     };
   }, []);
 
-
-  const saveCanvasState = () => {
-    const canvas = canvasRef.current;
-    const context = canvas?.getContext('2d');
-    if (!canvas || !context || canvas.width === 0 || canvas.height === 0) return;
-    try {
-      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-      setHistory(prev => {
-        const newHistory = [...prev, imageData];
-        if (newHistory.length > MAX_HISTORY_STEPS) {
-          return newHistory.slice(newHistory.length - MAX_HISTORY_STEPS);
-        }
-        return newHistory;
-      });
-    } catch (e) {
-      console.error("Failed to save canvas state:", e);
-    }
-  };
 
   const getMousePosition = (event: React.MouseEvent<HTMLCanvasElement>): { x: number; y: number } => {
     const canvas = canvasRef.current;
@@ -386,7 +439,7 @@ export default function WhiteboardPage() {
     const previousCompositeOp = context.globalCompositeOperation;
 
     context.globalCompositeOperation = 'source-over';
-    context.font = '16px Arial'; // Consider making font size/family configurable
+    context.font = '16px Arial';
     context.fillStyle = userSelectedPenColor || effectivePenColor;
     context.textBaseline = 'top';
     context.fillText(text, x, y);
@@ -546,7 +599,6 @@ export default function WhiteboardPage() {
       return;
     }
     
-    // Save Draft logic
     try {
       const draftName = `${t('whiteboard.draftNamePrefix')} ${new Date().toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' })}`;
       const newDraft: SavedDraft = {
@@ -587,23 +639,22 @@ export default function WhiteboardPage() {
 
     const img = new window.Image();
     img.onload = () => {
-      context.fillStyle = effectiveEraserColor; // Use current theme's bg
+      context.fillStyle = effectiveEraserColor; 
       context.fillRect(0, 0, canvas.width, canvas.height);
       context.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-      // Re-apply current tool settings after loading draft
       context.lineCap = 'round';
       context.lineJoin = 'round';
       context.globalCompositeOperation = 'source-over';
       if (currentTool === 'pen') {
         context.strokeStyle = userSelectedPenColor || effectivePenColor;
         context.lineWidth = penWidth;
-      } else { // eraser
+      } else { 
         context.strokeStyle = effectiveEraserColor;
         context.lineWidth = ERASER_WIDTH;
       }
 
-      saveCanvasState(); // Save the loaded state as current history base
+      saveCanvasState(); 
       const { id: toastId } = toast({ title: t('whiteboard.draftLoadedTitle'), description: t('whiteboard.draftLoadedDescription', { draftName: draftToLoad.name }) });
       setTimeout(() => dismissToast(toastId), 2000);
       setIsDraftsDialogOpen(false);
@@ -945,3 +996,5 @@ export default function WhiteboardPage() {
     </div>
   );
 }
+
+    
