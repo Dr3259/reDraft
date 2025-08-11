@@ -6,8 +6,8 @@ export default {
     title: '笔记画布 白板',
   },
   appModes: {
-    draft: '草稿本模式',
-    organize: '笔记本模式',
+    draft: '草稿本',
+    organize: '笔记本',
     tree: '梳理',
     switchToOrganize: '切换到笔记本模式',
     switchToDraft: '切换到草稿本模式',

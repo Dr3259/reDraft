@@ -6,9 +6,9 @@ export default {
     title: 'NoteCanvas Whiteboard',
   },
   appModes: {
-    draft: 'Draft Mode',
-    organize: 'Organize Mode',
-    tree: 'Tree Mode',
+    draft: 'Draft',
+    organize: 'Organize',
+    tree: 'Tree',
     switchToOrganize: 'Switch to Organize Mode',
     switchToDraft: 'Switch to Draft Mode',
     switchToTree: 'Switch to Tree Mode',
