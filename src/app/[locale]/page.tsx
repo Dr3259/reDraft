@@ -71,7 +71,7 @@ export default function WhiteboardPage() {
   const locale = useCurrentLocale();
   const { toast, dismiss: dismissToast } = useToast();
 
-  const [currentAppMode, setCurrentAppMode] = useState<AppMode>('draft');
+  const [currentAppMode, setCurrentAppMode] = useState<AppMode>('tree');
 
   const mainContainerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
