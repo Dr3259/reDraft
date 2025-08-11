@@ -3,15 +3,30 @@
 
 import * as React from 'react';
 import { useI18n, useCurrentLocale } from '@/locales/client';
-import { Plus, Trash2, GitBranch } from 'lucide-react';
+import { Plus, Trash2, GitBranch, FolderClock, FileSignature, Download, FileJson, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useAutosave } from '@/hooks/useAutosave';
+import { useToast } from "@/hooks/use-toast";
 import { cn } from '@/lib/utils';
 import { ScrollArea } from './ui/scroll-area';
 
-const LOCAL_STORAGE_TREE_KEY = 'treeModeData_v1';
+const LOCAL_STORAGE_TREE_DRAFTS_KEY = 'treeModeDrafts_v1';
 
 interface TreeNodeData {
   id: string;
@@ -22,6 +37,13 @@ interface TreeNodeData {
 const initialTreeData: TreeNodeData[] = [
   { id: 'root-1', content: '中心主题', children: [] },
 ];
+
+interface SavedTreeDraft {
+  id: string;
+  name: string;
+  data: TreeNodeData[];
+  createdAt: string;
+}
 
 interface TreeModeViewProps {
   themeBackgroundColor: string;
@@ -51,6 +73,16 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   themeTextColor
 }) => {
   const t = useI18n();
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    // A simple heuristic to focus newly added nodes
+    if (node.content === t('treeMode.newNode') || node.content === t('treeMode.newRootNode')) {
+        inputRef.current?.focus();
+        inputRef.current?.select();
+    }
+  }, [node.content, t]);
+
 
   return (
     <div className="relative pl-8">
@@ -66,6 +98,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
         <GitBranch className="h-5 w-5 flex-shrink-0" style={{ color: themeTextColor }} />
         <div className="flex-grow min-w-0">
           <Input
+            ref={inputRef}
             value={node.content}
             onChange={(e) => onUpdate(node.id, e.target.value)}
             className="text-base font-medium border-none focus-visible:ring-1 focus-visible:ring-offset-0 w-full bg-transparent theme-placeholder"
@@ -133,19 +166,41 @@ const TreeNode: React.FC<TreeNodeProps> = ({
 // === Main Tree Mode View ===
 export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeViewProps) {
   const t = useI18n();
-  const [treeData, setTreeData] = useAutosave<TreeNodeData[]>(LOCAL_STORAGE_TREE_KEY, initialTreeData);
+  const locale = useCurrentLocale();
+  const { toast, dismiss: dismissToast } = useToast();
 
-  const findNodeAndParent = (nodes: TreeNodeData[], nodeId: string, parent: TreeNodeData[] | null = null): { node: TreeNodeData | null; parent: TreeNodeData[] | null } => {
+  const [treeData, setTreeData] = React.useState<TreeNodeData[]>(initialTreeData);
+  const [drafts, setDrafts] = React.useState<SavedTreeDraft[]>([]);
+  const [isDraftsDialogOpen, setIsDraftsDialogOpen] = React.useState(false);
+  
+  React.useEffect(() => {
+    const loadDrafts = () => {
+      const savedDraftsJson = localStorage.getItem(LOCAL_STORAGE_TREE_DRAFTS_KEY);
+      if (savedDraftsJson) {
+        try {
+          const parsedDrafts: SavedTreeDraft[] = JSON.parse(savedDraftsJson);
+          setDrafts(parsedDrafts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+        } catch (e) {
+          console.error("Error parsing tree drafts from localStorage:", e);
+          localStorage.removeItem(LOCAL_STORAGE_TREE_DRAFTS_KEY);
+        }
+      }
+    };
+    loadDrafts();
+  }, []);
+
+
+  const findNodeAndParent = (nodes: TreeNodeData[], nodeId: string, parent: TreeNodeData[] | null = null, parentNode: TreeNodeData | null = null): { node: TreeNodeData | null; parent: TreeNodeData[] | null, parentNode: TreeNodeData | null } => {
     for (const node of nodes) {
       if (node.id === nodeId) {
-        return { node, parent };
+        return { node, parent, parentNode };
       }
-      const found = findNodeAndParent(node.children, nodeId, node.children);
+      const found = findNodeAndParent(node.children, nodeId, node.children, node);
       if (found.node) {
         return found;
       }
     }
-    return { node: null, parent: null };
+    return { node: null, parent: null, parentNode: null };
   };
 
   const updateNodeContent = (nodeId: string, content: string) => {
@@ -191,11 +246,16 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
 
   const deleteNode = (nodeId: string) => {
     const newTree = JSON.parse(JSON.stringify(treeData));
-    const { parent: parentArray } = findNodeAndParent(newTree, nodeId);
+    const { parent: parentArray } = findNodeAndParent(newTree, nodeId, newTree);
      if (parentArray) {
         const indexToDelete = parentArray.findIndex(n => n.id === nodeId);
         // Prevent deleting the last root node
-        if (parentArray === newTree && newTree.length === 1) {
+        if (parentArray === newTree && newTree.length === 1 && indexToDelete !== -1) {
+            toast({
+                variant: 'destructive',
+                title: t('treeMode.deleteLastErrorTitle'),
+                description: t('treeMode.deleteLastErrorDescription')
+            });
             return;
         }
         if (indexToDelete !== -1) {
@@ -215,6 +275,97 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
       }
     ]);
   };
+  
+  const downloadFile = (filename: string, content: string, mimeType: string) => {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+  
+  const generatePlainTextTree = (nodes: TreeNodeData[], indent: string = ''): string => {
+    let text = '';
+    nodes.forEach((node, index) => {
+      const isLast = index === nodes.length - 1;
+      text += `${indent}${isLast ? '└─' : '├─'} ${node.content}\n`;
+      text += generatePlainTextTree(node.children, `${indent}${isLast ? '    ' : '│   '}`);
+    });
+    return text;
+  };
+
+
+  const handleExport = (format: 'txt' | 'json') => {
+    if (!treeData || treeData.length === 0 || (treeData.length === 1 && !treeData[0].content && treeData[0].children.length === 0)) {
+        toast({ variant: "destructive", title: t('export.emptyNoteErrorTitle'), description: t('export.emptyTreeErrorDescription') });
+        return;
+    }
+
+    const firstNodeName = treeData[0]?.content.trim().replace(/\s+/g, '_') || 'untitled_tree';
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filenameBase = `tree-${firstNodeName}-${timestamp}`;
+
+    if (format === 'json') {
+        const filename = `${filenameBase}.json`;
+        downloadFile(filename, JSON.stringify(treeData, null, 2), 'application/json');
+        toast({ title: t('toast.exportedAs', { format: '.json' }), description: t('toast.downloadedDescription', {filename}) });
+    } else if (format === 'txt') {
+        const filename = `${filenameBase}.txt`;
+        const textContent = generatePlainTextTree(treeData);
+        downloadFile(filename, textContent, 'text/plain;charset=utf-8');
+        toast({ title: t('toast.exportedAs', { format: '.txt' }), description: t('toast.downloadedDescription', {filename}) });
+    }
+  };
+
+
+  const handleSaveTreeDraft = () => {
+    if (!treeData || treeData.length === 0) {
+        toast({ variant: "destructive", title: t('treeMode.emptyTreeErrorTitle'), description: t('treeMode.emptyTreeErrorDescription') });
+        return;
+    }
+
+    const draftName = `${t('treeMode.draftNamePrefix')} - ${treeData[0]?.content || 'Untitled'}`;
+    const newDraft: SavedTreeDraft = {
+      id: Date.now().toString(),
+      name: draftName,
+      data: treeData,
+      createdAt: new Date().toISOString(),
+    };
+
+    const updatedDrafts = [newDraft, ...drafts].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    try {
+      localStorage.setItem(LOCAL_STORAGE_TREE_DRAFTS_KEY, JSON.stringify(updatedDrafts));
+      setDrafts(updatedDrafts);
+      toast({ title: t('treeMode.draftSavedTitle'), description: t('treeMode.draftSavedDescription', { draftName: newDraft.name }) });
+    } catch (error) {
+      console.error("Error saving tree draft:", error);
+      toast({ variant: "destructive", title: t('treeMode.draftSaveErrorTitle'), description: t('treeMode.draftSaveErrorDescription') });
+    }
+  };
+
+  const handleLoadTreeDraft = (draftId: string) => {
+    const draftToLoad = drafts.find(d => d.id === draftId);
+    if (draftToLoad) {
+      setTreeData(draftToLoad.data);
+      toast({ title: t('treeMode.draftLoadedTitle'), description: t('treeMode.draftLoadedDescription', { draftName: draftToLoad.name }) });
+      setIsDraftsDialogOpen(false);
+    }
+  };
+
+  const handleDeleteTreeDraft = (draftId: string) => {
+    const draftToDelete = drafts.find(d => d.id === draftId);
+    if (!draftToDelete) return;
+    
+    const updatedDrafts = drafts.filter(d => d.id !== draftId);
+    localStorage.setItem(LOCAL_STORAGE_TREE_DRAFTS_KEY, JSON.stringify(updatedDrafts));
+    setDrafts(updatedDrafts);
+    toast({ title: t('treeMode.draftDeletedTitle'), description: t('treeMode.draftDeletedDescription', { draftName: draftToDelete.name }) });
+  };
+
 
   return (
     <div 
@@ -246,6 +397,97 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
             ))}
         </div>
       </ScrollArea>
+       <div className="absolute bottom-4 right-4 z-10 flex gap-2">
+        <TooltipProvider>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" aria-label={t('export.title')}>
+                  <Download className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleExport('txt')}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  <span>{t('export.txt')}</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('json')}>
+                  <FileJson className="mr-2 h-4 w-4" />
+                  <span>{t('export.json')}</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="icon" onClick={() => setIsDraftsDialogOpen(true)} aria-label={t('treeMode.manageDraftsTooltip')}>
+                  <FolderClock className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{t('treeMode.manageDraftsTooltip')}</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="icon" onClick={handleSaveTreeDraft} aria-label={t('treeMode.saveDraftTooltip')}>
+                  <FileSignature className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{t('treeMode.saveDraftTooltip')}</p>
+              </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+       </div>
+       
+      <Dialog open={isDraftsDialogOpen} onOpenChange={setIsDraftsDialogOpen}>
+        <DialogContent className="sm:max-w-[525px]">
+          <DialogHeader>
+            <DialogTitle>{t('treeMode.draftsDialogTitle')}</DialogTitle>
+            <DialogDescription>
+              {drafts.length > 0 ? t('treeMode.draftsDialogDescription') : t('treeMode.noDraftsMessage')}
+            </DialogDescription>
+          </DialogHeader>
+          {drafts.length > 0 && (
+            <ScrollArea className="h-[300px] w-full rounded-md border p-4">
+              <div className="space-y-4">
+                {drafts.map((draft) => (
+                  <div key={draft.id} className="flex items-center justify-between p-2 rounded-md hover:bg-accent space-x-3">
+                    <div className="flex-grow min-w-0">
+                      <p className="font-medium truncate">{draft.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(draft.createdAt).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' })}
+                      </p>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button variant="outline" size="sm" onClick={() => handleLoadTreeDraft(draft.id)}>
+                        {t('treeMode.loadDraftButton')}
+                      </Button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleDeleteTreeDraft(draft.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{t('treeMode.deleteDraftTooltip')}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          )}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">{t('treeMode.closeDialogButton')}</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
