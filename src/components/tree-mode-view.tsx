@@ -221,7 +221,7 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
       className="relative flex flex-col h-full overflow-hidden" 
       style={{ backgroundColor: themeBackgroundColor, color: themeTextColor }}
     >
-      <div className="flex justify-between items-center p-4 border-b border-border flex-shrink-0" style={{ borderColor: 'hsl(var(--border))' }}>
+      <div className="flex justify-between items-center p-4 border-b border-border flex-shrink-0 pr-40" style={{ borderColor: 'hsl(var(--border))' }}>
         <h1 className="text-xl font-semibold mr-4 flex-shrink-0">{t('appModes.tree')}</h1>
         <Button onClick={addRootNode} className="flex-shrink-0">
           <Plus className="mr-2 h-4 w-4" />
