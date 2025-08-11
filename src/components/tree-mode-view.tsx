@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { useI18n, useCurrentLocale } from '@/locales/client';
-import { Plus, Trash2, GitBranch, FolderClock, FileSignature, Download, FileJson, FileText, FileType } from 'lucide-react';
+import { Plus, Trash2, GitBranch, FolderClock, FileSignature, Download, FileJson, FileText, FileType, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -31,11 +31,12 @@ const LOCAL_STORAGE_TREE_DRAFTS_KEY = 'treeModeDrafts_v1';
 interface TreeNodeData {
   id: string;
   content: string;
+  isExpanded: boolean;
   children: TreeNodeData[];
 }
 
 const initialTreeData: TreeNodeData[] = [
-  { id: 'root-1', content: '中心主题', children: [] },
+  { id: 'root-1', content: '中心主题', isExpanded: true, children: [] },
 ];
 
 interface SavedTreeDraft {
@@ -58,6 +59,7 @@ interface TreeNodeProps {
   onAddChild: (parentId: string) => void;
   onAddSibling: (id: string) => void;
   onDelete: (id: string) => void;
+  onToggleExpand: (id: string) => void;
   isLastChildInLevel: boolean;
   themeTextColor: string;
 }
@@ -69,6 +71,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   onAddChild, 
   onAddSibling,
   onDelete,
+  onToggleExpand,
   isLastChildInLevel,
   themeTextColor
 }) => {
@@ -95,7 +98,15 @@ const TreeNode: React.FC<TreeNodeProps> = ({
 
       {/* Node Content & Actions */}
       <div className="flex items-center space-x-2 py-2">
-        <GitBranch className="h-5 w-5 flex-shrink-0" style={{ color: themeTextColor }} />
+        {node.children.length > 0 ? (
+          <ChevronRight 
+            className={cn("h-5 w-5 flex-shrink-0 cursor-pointer transition-transform", node.isExpanded && "rotate-90")}
+            style={{ color: themeTextColor }}
+            onClick={() => onToggleExpand(node.id)}
+          />
+        ) : (
+          <GitBranch className="h-5 w-5 flex-shrink-0" style={{ color: themeTextColor }} />
+        )}
         <div className="flex-grow min-w-0">
           <Input
             ref={inputRef}
@@ -141,7 +152,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
       </div>
       
       {/* Children Nodes */}
-      {node.children && node.children.length > 0 && (
+      {node.isExpanded && node.children && node.children.length > 0 && (
         <div className="border-l border-border">
           {node.children.map((childNode, index) => (
             <TreeNode
@@ -152,6 +163,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
               onAddChild={onAddChild}
               onAddSibling={onAddSibling}
               onDelete={onDelete}
+              onToggleExpand={onToggleExpand}
               isLastChildInLevel={index === node.children.length - 1}
               themeTextColor={themeTextColor}
             />
@@ -189,13 +201,12 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
     loadDrafts();
   }, []);
 
-
-  const findNodeAndParent = (nodes: TreeNodeData[], nodeId: string, parent: TreeNodeData[] | null = null, parentNode: TreeNodeData | null = null): { node: TreeNodeData | null; parent: TreeNodeData[] | null, parentNode: TreeNodeData | null } => {
+  const findNodeAndParentRecursive = (nodes: TreeNodeData[], nodeId: string, parent: TreeNodeData[] | null = null, parentNode: TreeNodeData | null = null): { node: TreeNodeData | null; parent: TreeNodeData[] | null, parentNode: TreeNodeData | null } => {
     for (const node of nodes) {
       if (node.id === nodeId) {
         return { node, parent, parentNode };
       }
-      const found = findNodeAndParent(node.children, nodeId, node.children, node);
+      const found = findNodeAndParentRecursive(node.children, nodeId, node.children, node);
       if (found.node) {
         return found;
       }
@@ -203,9 +214,18 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
     return { node: null, parent: null, parentNode: null };
   };
 
+  const findNodeRecursive = (nodes: TreeNodeData[], nodeId: string): TreeNodeData | null => {
+      for (const node of nodes) {
+        if (node.id === nodeId) return node;
+        const found = findNodeRecursive(node.children, nodeId);
+        if (found) return found;
+      }
+      return null;
+  };
+
   const updateNodeContent = (nodeId: string, content: string) => {
     const newTree = JSON.parse(JSON.stringify(treeData));
-    const { node } = findNodeAndParent(newTree, nodeId);
+    const node = findNodeRecursive(newTree, nodeId);
     if (node) {
       node.content = content;
       setTreeData(newTree);
@@ -214,21 +234,23 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
 
   const addChildNode = (parentId: string) => {
     const newTree = JSON.parse(JSON.stringify(treeData));
-    const { node: parentNode } = findNodeAndParent(newTree, parentId);
+    const parentNode = findNodeRecursive(newTree, parentId);
     if (parentNode) {
       const newNode: TreeNodeData = {
         id: `node-${Date.now()}-${Math.random()}`,
         content: t('treeMode.newNode'),
+        isExpanded: true,
         children: [],
       };
       parentNode.children.push(newNode);
+      parentNode.isExpanded = true; // Ensure parent is expanded when adding a child
       setTreeData(newTree);
     }
   };
   
   const addSiblingNode = (nodeId: string) => {
     const newTree = JSON.parse(JSON.stringify(treeData));
-    const { parent: parentArray } = findNodeAndParent(newTree, nodeId);
+    const { parent: parentArray } = findNodeAndParentRecursive(newTree, nodeId);
     
     if (parentArray) {
        const siblingIndex = parentArray.findIndex(n => n.id === nodeId);
@@ -236,6 +258,7 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
           const newNode: TreeNodeData = {
             id: `node-${Date.now()}-${Math.random()}`,
             content: t('treeMode.newNode'),
+            isExpanded: true,
             children: [],
           };
           parentArray.splice(siblingIndex + 1, 0, newNode);
@@ -246,7 +269,7 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
 
   const deleteNode = (nodeId: string) => {
     let newTree = JSON.parse(JSON.stringify(treeData));
-    const { parent: parentArray, node: nodeToDelete } = findNodeAndParent(newTree, nodeId);
+    const { parent: parentArray, node: nodeToDelete } = findNodeAndParentRecursive(newTree, nodeId);
   
     if (parentArray && nodeToDelete) {
       const indexToDelete = parentArray.findIndex(n => n.id === nodeId);
@@ -254,7 +277,7 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
         parentArray.splice(indexToDelete, 1);
         // If the last root node is deleted, ensure the treeData is not empty
         if (newTree.length === 0) {
-            newTree = [{ id: 'root-1', content: t('treeMode.newRootNode'), children: [] }];
+            newTree = [{ id: 'root-1', content: t('treeMode.newRootNode'), isExpanded: true, children: [] }];
             toast({
                 variant: 'default',
                 title: t('treeMode.deleteLastErrorTitle'),
@@ -283,11 +306,21 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
       {
         id: `root-${Date.now()}`,
         content: t('treeMode.newRootNode'),
+        isExpanded: true,
         children: [],
       }
     ]);
   };
   
+  const toggleNodeExpansion = (nodeId: string) => {
+    const newTree = JSON.parse(JSON.stringify(treeData));
+    const node = findNodeRecursive(newTree, nodeId);
+    if (node) {
+      node.isExpanded = !node.isExpanded;
+      setTreeData(newTree);
+    }
+  };
+
   const downloadFile = (filename: string, content: string, mimeType: string) => {
     const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
@@ -419,6 +452,7 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
                   onAddChild={addChildNode}
                   onAddSibling={addSiblingNode}
                   onDelete={deleteNode}
+                  onToggleExpand={toggleNodeExpansion}
                   isLastChildInLevel={index === treeData.length - 1}
                   themeTextColor={themeTextColor}
                 />
