@@ -246,7 +246,7 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
 
   const deleteNode = (nodeId: string) => {
     const newTree = JSON.parse(JSON.stringify(treeData));
-    const { parent: parentArray } = findNodeAndParent(newTree, nodeId, newTree);
+    const { parent: parentArray } = findNodeAndParent(newTree, newTree);
      if (parentArray) {
         const indexToDelete = parentArray.findIndex(n => n.id === nodeId);
         // Prevent deleting the last root node
@@ -417,7 +417,12 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
         <TooltipProvider>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" aria-label={t('export.title')}>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  aria-label={t('export.title')} 
+                  className="hover:bg-white/20 focus-visible:ring-1 focus-visible:ring-white/40"
+                >
                   <Download className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
@@ -439,7 +444,13 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="icon" onClick={() => setIsDraftsDialogOpen(true)} aria-label={t('treeMode.manageDraftsTooltip')}>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => setIsDraftsDialogOpen(true)} 
+                  aria-label={t('treeMode.manageDraftsTooltip')}
+                  className="hover:bg-white/20 focus-visible:ring-1 focus-visible:ring-white/40"
+                >
                   <FolderClock className="h-5 w-5" />
                 </Button>
               </TooltipTrigger>
@@ -449,7 +460,13 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="icon" onClick={handleSaveTreeDraft} aria-label={t('treeMode.saveDraftTooltip')}>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={handleSaveTreeDraft} 
+                  aria-label={t('treeMode.saveDraftTooltip')}
+                  className="hover:bg-white/20 focus-visible:ring-1 focus-visible:ring-white/40"
+                >
                   <FileSignature className="h-5 w-5" />
                 </Button>
               </TooltipTrigger>
@@ -511,5 +528,3 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
     </div>
   );
 }
-
-    
