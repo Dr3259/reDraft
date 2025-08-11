@@ -245,23 +245,35 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
   };
 
   const deleteNode = (nodeId: string) => {
-    const newTree = JSON.parse(JSON.stringify(treeData));
-    const { parent: parentArray } = findNodeAndParent(newTree, newTree);
-     if (parentArray) {
-        const indexToDelete = parentArray.findIndex(n => n.id === nodeId);
-        // Prevent deleting the last root node
-        if (parentArray === newTree && newTree.length === 1 && indexToDelete !== -1) {
+    let newTree = JSON.parse(JSON.stringify(treeData));
+    const { parent: parentArray, node: nodeToDelete } = findNodeAndParent(newTree, nodeId);
+  
+    if (parentArray && nodeToDelete) {
+      const indexToDelete = parentArray.findIndex(n => n.id === nodeId);
+      if (indexToDelete !== -1) {
+        parentArray.splice(indexToDelete, 1);
+        // If the last root node is deleted, ensure the treeData is not empty
+        if (newTree.length === 0) {
+            newTree = [{ id: 'root-1', content: t('treeMode.newRootNode'), children: [] }];
             toast({
-                variant: 'destructive',
+                variant: 'default',
                 title: t('treeMode.deleteLastErrorTitle'),
-                description: t('treeMode.deleteLastErrorDescription')
+                description: t('treeMode.deleteLastErrorDescription'),
+                duration: 3000
             });
-            return;
         }
-        if (indexToDelete !== -1) {
-            parentArray.splice(indexToDelete, 1);
-            setTreeData(newTree);
-        }
+        setTreeData(newTree);
+      }
+    } else if (treeData.some(n => n.id === nodeId) && treeData.length > 1) {
+        // Handle deleting a root node when there is more than one
+        newTree = treeData.filter(n => n.id !== nodeId);
+        setTreeData(newTree);
+    } else if (treeData.length === 1 && treeData[0].id === nodeId) {
+         toast({
+            variant: 'destructive',
+            title: t('treeMode.deleteLastErrorTitle'),
+            description: t('treeMode.deleteLastErrorDescription')
+        });
     }
   };
   

@@ -8,10 +8,10 @@ export default {
   appModes: {
     draft: '草稿本模式',
     organize: '笔记本模式',
-    tree: '树模式',
+    tree: '梳理',
     switchToOrganize: '切换到笔记本模式',
     switchToDraft: '切换到草稿本模式',
-    switchToTree: '切换到树模式',
+    switchToTree: '切换到梳理模式',
     organizeTitle: '笔记整理器',
     changeMode: '切换模式',
   },
@@ -159,7 +159,7 @@ export default {
   export: {
     title: '导出笔记',
     txt: '导出为 .txt (纯文本)',
-    md: '导出为 .md (HTML 内容)',
+    md: '导出为 .md (Markdown)',
     pdf: '导出为 .pdf',
     json: '导出为 .json',
     emptyNoteErrorTitle: '笔记为空',

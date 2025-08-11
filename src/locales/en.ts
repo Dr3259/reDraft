@@ -160,7 +160,7 @@ export default {
   export: {
     title: 'Export Note',
     txt: 'Export as .txt (Plain Text)',
-    md: 'Export as .md (HTML Content)',
+    md: 'Export as .md (Markdown)',
     pdf: 'Export as .pdf',
     json: 'Export as .json',
     emptyNoteErrorTitle: 'Empty Note',
