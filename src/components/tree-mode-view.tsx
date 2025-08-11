@@ -64,17 +64,19 @@ const TreeNode: React.FC<TreeNodeProps> = ({
       {/* Node Content & Actions */}
       <div className="flex items-center space-x-2 py-2">
         <GitBranch className="h-5 w-5 flex-shrink-0" style={{ color: themeTextColor }} />
-        <Input
-          value={node.content}
-          onChange={(e) => onUpdate(node.id, e.target.value)}
-          className="text-base font-medium border-none focus-visible:ring-1 focus-visible:ring-offset-0 flex-grow bg-transparent theme-placeholder"
-          style={{ 
-            color: themeTextColor,
-            '--placeholder-color': themeTextColor,
-            '--placeholder-opacity': '0.6',
-           } as React.CSSProperties}
-          placeholder={t('treeMode.nodePlaceholder')}
-        />
+        <div className="flex-grow">
+          <Input
+            value={node.content}
+            onChange={(e) => onUpdate(node.id, e.target.value)}
+            className="text-base font-medium border-none focus-visible:ring-1 focus-visible:ring-offset-0 w-full bg-transparent theme-placeholder"
+            style={{ 
+              color: themeTextColor,
+              '--placeholder-color': themeTextColor,
+              '--placeholder-opacity': '0.6',
+            } as React.CSSProperties}
+            placeholder={t('treeMode.nodePlaceholder')}
+          />
+        </div>
         <TooltipProvider>
             <Tooltip>
                 <TooltipTrigger asChild>
@@ -247,4 +249,3 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
     </div>
   );
 }
-
