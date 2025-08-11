@@ -111,7 +111,10 @@ const TreeNode: React.FC<TreeNodeProps> = ({
             ref={inputRef}
             value={node.content}
             onChange={(e) => onUpdate(node.id, e.target.value)}
-            className="text-base font-medium border-none focus-visible:ring-1 focus-visible:ring-offset-0 w-full bg-transparent theme-placeholder"
+            className={cn(
+              "border-none focus-visible:ring-1 focus-visible:ring-offset-0 w-full bg-transparent theme-placeholder",
+              level === 0 ? "text-lg font-semibold" : "text-base font-normal"
+            )}
             style={{ 
               color: themeTextColor,
               '--placeholder-color': themeTextColor,
@@ -601,3 +604,5 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
     </div>
   );
 }
+
+    
