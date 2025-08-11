@@ -64,7 +64,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
       {/* Node Content & Actions */}
       <div className="flex items-center space-x-2 py-2">
         <GitBranch className="h-5 w-5 flex-shrink-0" style={{ color: themeTextColor }} />
-        <div className="flex-grow">
+        <div className="flex-grow min-w-0">
           <Input
             value={node.content}
             onChange={(e) => onUpdate(node.id, e.target.value)}
@@ -222,8 +222,8 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
       style={{ backgroundColor: themeBackgroundColor, color: themeTextColor }}
     >
       <div className="flex justify-between items-center p-4 border-b border-border flex-shrink-0" style={{ borderColor: 'hsl(var(--border))' }}>
-        <h1 className="text-xl font-semibold">{t('appModes.tree')}</h1>
-        <Button onClick={addRootNode}>
+        <h1 className="text-xl font-semibold mr-4 flex-shrink-0">{t('appModes.tree')}</h1>
+        <Button onClick={addRootNode} className="flex-shrink-0">
           <Plus className="mr-2 h-4 w-4" />
           {t('treeMode.addRootNode')}
         </Button>
