@@ -17,6 +17,13 @@ export default {
   },
   treeMode: {
     underConstruction: '此功能正在开发中。',
+    addRootNode: '添加新树',
+    newRootNode: '新的中心主题',
+    newNode: '新想法',
+    nodePlaceholder: '输入你的想法...',
+    addChildTooltip: '添加子节点',
+    addSiblingTooltip: '添加同级节点',
+    deleteNodeTooltip: '删除节点',
   },
   organizeMode: {
     placeholder: '在此开始输入您的笔记...', // 通用占位符，TipTap 将使用特定的
@@ -86,6 +93,10 @@ export default {
     draftSavedDescription: "绘画草稿 '{draftName}' 已保存在此浏览器中。",
     draftLoadedTitle: '绘画草稿已加载',
     draftLoadedDescription: "绘画草稿 '{draftName}' 已加载。",
+    draftSaveErrorTitle: '保存错误',
+    draftSaveErrorDescription: '无法将绘画草稿保存到浏览器存储。',
+    draftLoadErrorTitle: '加载错误',
+    draftLoadErrorSpecificDescription: '无法加载选中的绘画草稿，它可能已损坏。',
     draftSaveErrorTitle: '保存错误',
     draftSaveErrorDescription: '无法将绘画草稿保存到浏览器存储。',
     draftLoadErrorTitle: '加载错误',

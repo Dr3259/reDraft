@@ -17,6 +17,13 @@ export default {
   },
   treeMode: {
     underConstruction: 'This feature is currently under construction.',
+    addRootNode: 'Add New Tree',
+    newRootNode: 'New Root Theme',
+    newNode: 'New idea',
+    nodePlaceholder: 'Type your idea...',
+    addChildTooltip: 'Add Child Node',
+    addSiblingTooltip: 'Add Sibling Node',
+    deleteNodeTooltip: 'Delete Node',
   },
   organizeMode: {
     placeholder: 'Start typing your notes here...', // General placeholder, TipTap will use specific ones
