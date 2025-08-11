@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { useI18n, useCurrentLocale } from '@/locales/client';
-import { Plus, Trash2, GitBranch, FolderClock, FileSignature, Download, FileJson, FileText } from 'lucide-react';
+import { Plus, Trash2, GitBranch, FolderClock, FileSignature, Download, FileJson, FileText, FileType } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -297,9 +297,20 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
     });
     return text;
   };
+  
+  const generateMarkdownTree = (nodes: TreeNodeData[], level = 0): string => {
+    let md = '';
+    nodes.forEach(node => {
+      md += `${'  '.repeat(level)}- ${node.content}\n`;
+      if (node.children && node.children.length > 0) {
+        md += generateMarkdownTree(node.children, level + 1);
+      }
+    });
+    return md;
+  };
 
 
-  const handleExport = (format: 'txt' | 'json') => {
+  const handleExport = (format: 'txt' | 'json' | 'md') => {
     if (!treeData || treeData.length === 0 || (treeData.length === 1 && !treeData[0].content && treeData[0].children.length === 0)) {
         toast({ variant: "destructive", title: t('export.emptyNoteErrorTitle'), description: t('export.emptyTreeErrorDescription') });
         return;
@@ -318,6 +329,11 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
         const textContent = generatePlainTextTree(treeData);
         downloadFile(filename, textContent, 'text/plain;charset=utf-8');
         toast({ title: t('toast.exportedAs', { format: '.txt' }), description: t('toast.downloadedDescription', {filename}) });
+    } else if (format === 'md') {
+        const filename = `${filenameBase}.md`;
+        const mdContent = generateMarkdownTree(treeData);
+        downloadFile(filename, mdContent, 'text/markdown;charset=utf-8');
+        toast({ title: t('toast.exportedAs', { format: '.md' }), description: t('toast.downloadedDescription', {filename}) });
     }
   };
 
@@ -410,6 +426,10 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
                   <FileText className="mr-2 h-4 w-4" />
                   <span>{t('export.txt')}</span>
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('md')}>
+                  <FileType className="mr-2 h-4 w-4" />
+                  <span>{t('export.md')}</span>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleExport('json')}>
                   <FileJson className="mr-2 h-4 w-4" />
                   <span>{t('export.json')}</span>
@@ -491,3 +511,5 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
     </div>
   );
 }
+
+    
