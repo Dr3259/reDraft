@@ -45,6 +45,11 @@ export default {
     draftSaveErrorDescription: '无法保存树状图草稿。',
     emptyTreeErrorTitle: '树为空',
     emptyTreeErrorDescription: '树中没有内容可以保存。',
+    copyTooltip: '复制为 Markdown',
+    copySuccessTitle: '已复制到剪贴板',
+    copySuccessDescription: '树状图已作为 Markdown 格式复制。',
+    copyErrorTitle: '复制失败',
+    copyErrorDescription: '无法将树状图复制到剪贴板。',
   },
   organizeMode: {
     placeholder: '在此开始输入您的笔记...', // 通用占位符，TipTap 将使用特定的

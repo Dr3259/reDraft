@@ -45,6 +45,11 @@ export default {
     draftSaveErrorDescription: 'Could not save tree draft.',
     emptyTreeErrorTitle: 'Empty Tree',
     emptyTreeErrorDescription: 'There is no content in the tree to save.',
+    copyTooltip: 'Copy as Markdown',
+    copySuccessTitle: 'Copied to Clipboard',
+    copySuccessDescription: 'The tree has been copied as Markdown.',
+    copyErrorTitle: 'Copy Failed',
+    copyErrorDescription: 'Could not copy the tree to the clipboard.',
   },
   organizeMode: {
     placeholder: 'Start typing your notes here...', // General placeholder, TipTap will use specific ones

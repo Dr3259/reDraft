@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { useI18n, useCurrentLocale } from '@/locales/client';
-import { Plus, Trash2, GitBranch, FolderClock, FileSignature, Download, FileJson, FileText, FileType, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, GitBranch, FolderClock, FileSignature, Download, FileJson, FileText, FileType, ChevronRight, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -79,7 +79,6 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
-    // A simple heuristic to focus newly added nodes
     if (node.content === t('treeMode.newNode') || node.content === t('treeMode.newRootNode')) {
         inputRef.current?.focus();
         inputRef.current?.select();
@@ -98,7 +97,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
 
       {/* Node Content & Actions */}
       <div className="flex items-center space-x-2 py-2">
-        {node.children.length > 0 ? (
+         {node.children.length > 0 ? (
           <ChevronRight 
             className={cn("h-5 w-5 flex-shrink-0 cursor-pointer transition-transform", node.isExpanded && "rotate-90")}
             style={{ color: themeTextColor }}
@@ -243,7 +242,7 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
         children: [],
       };
       parentNode.children.push(newNode);
-      parentNode.isExpanded = true; // Ensure parent is expanded when adding a child
+      parentNode.isExpanded = true;
       setTreeData(newTree);
     }
   };
@@ -275,7 +274,6 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
       const indexToDelete = parentArray.findIndex(n => n.id === nodeId);
       if (indexToDelete !== -1) {
         parentArray.splice(indexToDelete, 1);
-        // If the last root node is deleted, ensure the treeData is not empty
         if (newTree.length === 0) {
             newTree = [{ id: 'root-1', content: t('treeMode.newRootNode'), isExpanded: true, children: [] }];
             toast({
@@ -288,7 +286,6 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
         setTreeData(newTree);
       }
     } else if (treeData.some(n => n.id === nodeId) && treeData.length > 1) {
-        // Handle deleting a root node when there is more than one
         newTree = treeData.filter(n => n.id !== nodeId);
         setTreeData(newTree);
     } else if (treeData.length === 1 && treeData[0].id === nodeId) {
@@ -338,7 +335,9 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
     nodes.forEach((node, index) => {
       const isLast = index === nodes.length - 1;
       text += `${indent}${isLast ? '└─' : '├─'} ${node.content}\n`;
-      text += generatePlainTextTree(node.children, `${indent}${isLast ? '    ' : '│   '}`);
+      if (node.isExpanded) {
+        text += generatePlainTextTree(node.children, `${indent}${isLast ? '    ' : '│   '}`);
+      }
     });
     return text;
   };
@@ -347,7 +346,7 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
     let md = '';
     nodes.forEach(node => {
       md += `${'  '.repeat(level)}- ${node.content}\n`;
-      if (node.children && node.children.length > 0) {
+      if (node.isExpanded && node.children && node.children.length > 0) {
         md += generateMarkdownTree(node.children, level + 1);
       }
     });
@@ -380,6 +379,20 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
         downloadFile(filename, mdContent, 'text/markdown;charset=utf-8');
         toast({ title: t('toast.exportedAs', { format: '.md' }), description: t('toast.downloadedDescription', {filename}) });
     }
+  };
+
+  const handleCopyToClipboard = () => {
+    if (!treeData || treeData.length === 0 || (treeData.length === 1 && !treeData[0].content && treeData[0].children.length === 0)) {
+        toast({ variant: "destructive", title: t('export.emptyNoteErrorTitle'), description: t('export.emptyTreeErrorDescription') });
+        return;
+    }
+    const mdContent = generateMarkdownTree(treeData);
+    navigator.clipboard.writeText(mdContent).then(() => {
+        toast({ title: t('treeMode.copySuccessTitle'), description: t('treeMode.copySuccessDescription') });
+    }).catch(err => {
+        console.error('Failed to copy: ', err);
+        toast({ variant: "destructive", title: t('treeMode.copyErrorTitle'), description: t('treeMode.copyErrorDescription') });
+    });
   };
 
 
@@ -435,10 +448,24 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
     >
       <div className="flex justify-between items-center p-4 border-b border-border flex-shrink-0 pr-40" style={{ borderColor: 'hsl(var(--border))' }}>
         <h1 className="text-xl font-semibold mr-4 flex-shrink-0">{t('appModes.tree')}</h1>
-        <Button onClick={addRootNode} className="flex-shrink-0">
-          <Plus className="mr-2 h-4 w-4" />
-          {t('treeMode.addRootNode')}
-        </Button>
+        <div className="flex items-center space-x-2">
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="outline" size="icon" onClick={handleCopyToClipboard}>
+                            <Copy className="h-5 w-5" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>{t('treeMode.copyTooltip')}</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+            <Button onClick={addRootNode} className="flex-shrink-0">
+            <Plus className="mr-2 h-4 w-4" />
+            {t('treeMode.addRootNode')}
+            </Button>
+        </div>
       </div>
 
       <ScrollArea className="flex-grow p-4 md:p-8">
