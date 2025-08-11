@@ -6,7 +6,7 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useI18n, useCurrentLocale } from '@/locales/client';
-import { Eraser, Trash2, Undo2, FolderClock, Palette, Trash, Expand, Minimize, FileSignature, FileDown, PenLine, Paintbrush, Notebook } from 'lucide-react';
+import { Eraser, Trash2, Undo2, FolderClock, Palette, Trash, Expand, Minimize, FileSignature, FileDown, PenLine, Paintbrush, Notebook, GitFork } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -17,6 +17,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import {
   Dialog,
@@ -33,6 +34,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { OrganizeModeView } from '@/components/organize-mode-view';
+import { TreeModeView } from '@/components/tree-mode-view';
 
 const ERASER_WIDTH = 20;
 const MAX_HISTORY_STEPS = 30;
@@ -40,7 +42,7 @@ const LOCAL_STORAGE_DRAFTS_KEY = 'whiteboardDrafts_v2';
 const LOCAL_STORAGE_THEME_KEY = 'whiteboardTheme_v1';
 
 type CanvasTheme = 'whiteboard' | 'blackboard' | 'eyecare' | 'reading';
-type AppMode = 'draft' | 'organize';
+type AppMode = 'draft' | 'organize' | 'tree';
 
 const themeClasses: Record<CanvasTheme, string> = {
   whiteboard: 'theme-whiteboard',
@@ -712,10 +714,6 @@ export default function WhiteboardPage() {
     }
   };
 
-  const handleToggleMode = () => {
-    setCurrentAppMode(prevMode => prevMode === 'draft' ? 'organize' : 'draft');
-  };
-
   const undoDisabled = history.length <= 1;
   const finalPenColor = userSelectedPenColor || effectivePenColor;
 
@@ -725,23 +723,32 @@ export default function WhiteboardPage() {
       className={cn("w-screen h-screen relative overflow-hidden flex flex-col app-canvas-container", themeClasses[currentTheme])}
       >
       <div className="absolute top-4 right-4 z-10 flex items-center space-x-2">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleToggleMode}
-                aria-label={currentAppMode === 'draft' ? t('appModes.switchToOrganize') : t('appModes.switchToDraft')}
-              >
-                {currentAppMode === 'draft' ? <Notebook className="h-5 w-5" /> : <Paintbrush className="h-5 w-5" />}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{currentAppMode === 'draft' ? t('appModes.switchToOrganize') : t('appModes.switchToDraft')}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="icon" aria-label={t('appModes.changeMode')}>
+              {currentAppMode === 'draft' && <Paintbrush className="h-5 w-5" />}
+              {currentAppMode === 'organize' && <Notebook className="h-5 w-5" />}
+              {currentAppMode === 'tree' && <GitFork className="h-5 w-5" />}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>{t('appModes.changeMode')}</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setCurrentAppMode('draft')} disabled={currentAppMode === 'draft'}>
+              <Paintbrush className="mr-2 h-4 w-4" />
+              <span>{t('appModes.draft')}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setCurrentAppMode('organize')} disabled={currentAppMode === 'organize'}>
+              <Notebook className="mr-2 h-4 w-4" />
+              <span>{t('appModes.organize')}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setCurrentAppMode('tree')} disabled={currentAppMode === 'tree'}>
+              <GitFork className="mr-2 h-4 w-4" />
+              <span>{t('appModes.tree')}</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -975,6 +982,13 @@ export default function WhiteboardPage() {
             themeTextColor={effectivePenColor}
          />
       )}
+
+      {currentAppMode === 'tree' && (
+         <TreeModeView
+            themeBackgroundColor={effectiveEraserColor}
+            themeTextColor={effectivePenColor}
+         />
+      )}
       
       {currentAppMode === 'draft' && (
         <Dialog open={isDraftsDialogOpen} onOpenChange={setIsDraftsDialogOpen}>
@@ -1038,3 +1052,4 @@ export default function WhiteboardPage() {
   );
 }
 
+    

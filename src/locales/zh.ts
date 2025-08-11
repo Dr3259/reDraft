@@ -7,10 +7,16 @@ export default {
   },
   appModes: {
     draft: '草稿本模式',
-    organize: '整理模式',
-    switchToOrganize: '切换到整理模式',
+    organize: '笔记本模式',
+    tree: '树模式',
+    switchToOrganize: '切换到笔记本模式',
     switchToDraft: '切换到草稿本模式',
+    switchToTree: '切换到树模式',
     organizeTitle: '笔记整理器',
+    changeMode: '切换模式',
+  },
+  treeMode: {
+    underConstruction: '此功能正在开发中。',
   },
   organizeMode: {
     placeholder: '在此开始输入您的笔记...', // 通用占位符，TipTap 将使用特定的
@@ -152,3 +158,5 @@ export default {
     noResults: '未找到匹配的命令',
   }
 } as const;
+
+    

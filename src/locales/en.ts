@@ -8,9 +8,15 @@ export default {
   appModes: {
     draft: 'Draft Mode',
     organize: 'Organize Mode',
+    tree: 'Tree Mode',
     switchToOrganize: 'Switch to Organize Mode',
     switchToDraft: 'Switch to Draft Mode',
+    switchToTree: 'Switch to Tree Mode',
     organizeTitle: 'Note Organizer',
+    changeMode: 'Change Mode',
+  },
+  treeMode: {
+    underConstruction: 'This feature is currently under construction.',
   },
   organizeMode: {
     placeholder: 'Start typing your notes here...', // General placeholder, TipTap will use specific ones
@@ -153,3 +159,5 @@ export default {
     noResults: 'No commands match',
   }
 } as const;
+
+    
