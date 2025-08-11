@@ -181,7 +181,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
 export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeViewProps) {
   const t = useI18n();
   const locale = useCurrentLocale();
-  const { toast, dismiss: dismissToast } = useToast();
+  const { toast } = useToast();
 
   const [treeData, setTreeData] = React.useState<TreeNodeData[]>(initialTreeData);
   const [drafts, setDrafts] = React.useState<SavedTreeDraft[]>([]);
@@ -370,17 +370,17 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
     if (format === 'json') {
         const filename = `${filenameBase}.json`;
         downloadFile(filename, JSON.stringify(treeData, null, 2), 'application/json');
-        toast({ title: t('toast.exportedAs', { format: '.json' }), description: t('toast.downloadedDescription', {filename}) });
+        toast({ title: t('toast.exportedAs', { format: '.json' }), description: t('toast.downloadedDescription', {filename}), duration: 2000 });
     } else if (format === 'txt') {
         const filename = `${filenameBase}.txt`;
         const textContent = generatePlainTextTree(treeData);
         downloadFile(filename, textContent, 'text/plain;charset=utf-8');
-        toast({ title: t('toast.exportedAs', { format: '.txt' }), description: t('toast.downloadedDescription', {filename}) });
+        toast({ title: t('toast.exportedAs', { format: '.txt' }), description: t('toast.downloadedDescription', {filename}), duration: 2000 });
     } else if (format === 'md') {
         const filename = `${filenameBase}.md`;
         const mdContent = generateMarkdownTree(treeData);
         downloadFile(filename, mdContent, 'text/markdown;charset=utf-8');
-        toast({ title: t('toast.exportedAs', { format: '.md' }), description: t('toast.downloadedDescription', {filename}) });
+        toast({ title: t('toast.exportedAs', { format: '.md' }), description: t('toast.downloadedDescription', {filename}), duration: 2000 });
     }
   };
 
@@ -391,7 +391,7 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
     }
     const mdContent = generateMarkdownTree(treeData);
     navigator.clipboard.writeText(mdContent).then(() => {
-        toast({ title: t('treeMode.copySuccessTitle'), description: t('treeMode.copySuccessDescription') });
+        toast({ title: t('treeMode.copySuccessTitle'), description: t('treeMode.copySuccessDescription'), duration: 2000 });
     }).catch(err => {
         console.error('Failed to copy: ', err);
         toast({ variant: "destructive", title: t('treeMode.copyErrorTitle'), description: t('treeMode.copyErrorDescription') });
@@ -417,7 +417,7 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
     try {
       localStorage.setItem(LOCAL_STORAGE_TREE_DRAFTS_KEY, JSON.stringify(updatedDrafts));
       setDrafts(updatedDrafts);
-      toast({ title: t('treeMode.draftSavedTitle'), description: t('treeMode.draftSavedDescription', { draftName: newDraft.name }) });
+      toast({ title: t('treeMode.draftSavedTitle'), description: t('treeMode.draftSavedDescription', { draftName: newDraft.name }), duration: 2000 });
     } catch (error) {
       console.error("Error saving tree draft:", error);
       toast({ variant: "destructive", title: t('treeMode.draftSaveErrorTitle'), description: t('treeMode.draftSaveErrorDescription') });
@@ -428,7 +428,7 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
     const draftToLoad = drafts.find(d => d.id === draftId);
     if (draftToLoad) {
       setTreeData(draftToLoad.data);
-      toast({ title: t('treeMode.draftLoadedTitle'), description: t('treeMode.draftLoadedDescription', { draftName: draftToLoad.name }) });
+      toast({ title: t('treeMode.draftLoadedTitle'), description: t('treeMode.draftLoadedDescription', { draftName: draftToLoad.name }), duration: 2000 });
       setIsDraftsDialogOpen(false);
     }
   };
@@ -440,7 +440,7 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
     const updatedDrafts = drafts.filter(d => d.id !== draftId);
     localStorage.setItem(LOCAL_STORAGE_TREE_DRAFTS_KEY, JSON.stringify(updatedDrafts));
     setDrafts(updatedDrafts);
-    toast({ title: t('treeMode.draftDeletedTitle'), description: t('treeMode.draftDeletedDescription', { draftName: draftToDelete.name }) });
+    toast({ title: t('treeMode.draftDeletedTitle'), description: t('treeMode.draftDeletedDescription', { draftName: draftToDelete.name }), duration: 2000 });
   };
 
 
@@ -604,5 +604,3 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
     </div>
   );
 }
-
-    
