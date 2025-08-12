@@ -99,15 +99,20 @@ const TreeNode: React.FC<TreeNodeProps> = ({
 
       {/* Node Content & Actions */}
       <div className="flex items-center space-x-2 py-2">
-         {node.children.length > 0 ? (
-          <ChevronRight 
-            className={cn("h-5 w-5 flex-shrink-0 cursor-pointer transition-transform", node.isExpanded && "rotate-90")}
-            style={{ color: themeTextColor }}
+         <button
             onClick={() => onToggleExpand(node.id)}
-          />
-        ) : (
-          <GitBranch className="h-5 w-5 flex-shrink-0" style={{ color: themeTextColor }} />
-        )}
+            className="flex items-center justify-center w-5 h-5 flex-shrink-0"
+            aria-label={node.isExpanded ? "Collapse" : "Expand"}
+          >
+          {node.children.length > 0 ? (
+            <ChevronRight 
+              className={cn("h-5 w-5 flex-shrink-0 cursor-pointer transition-transform", node.isExpanded && "rotate-90")}
+              style={{ color: themeTextColor }}
+            />
+          ) : (
+            <GitBranch className="h-5 w-5 flex-shrink-0 opacity-50" style={{ color: themeTextColor }} />
+          )}
+        </button>
         <div className="flex-grow min-w-0">
           <Input
             ref={inputRef}
@@ -454,20 +459,18 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
             <Plus className="mr-2 h-4 w-4" />
             {t('treeMode.addRootNode')}
           </Button>
-        </div>
-        <div className="flex items-center space-x-2">
-            <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button variant="outline" size="icon" onClick={handleCopyToClipboard}>
-                            <Copy className="h-5 w-5" />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>{t('treeMode.copyTooltip')}</p>
-                    </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="icon" onClick={handleCopyToClipboard}>
+                  <Copy className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{t('treeMode.copyTooltip')}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
 
