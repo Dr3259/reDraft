@@ -280,10 +280,10 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
     let newTree = JSON.parse(JSON.stringify(treeData));
     const { parent } = findNodeAndParentRecursive(newTree, nodeId);
 
-    if (parent) { // Node is not a root node
+    if (parent) {
       parent.children = parent.children.filter(n => n.id !== nodeId);
       setTreeData(newTree);
-    } else { // Node is a root node
+    } else {
       if (newTree.length > 1) {
         newTree = newTree.filter(n => n.id !== nodeId);
         setTreeData(newTree);
@@ -605,6 +605,3 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
     </div>
   );
 }
-
-    
-    
