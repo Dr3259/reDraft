@@ -79,6 +79,8 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
+    // If the node content is the default for a new node, focus and select it.
+    // This implicitly handles scrolling the node into view.
     if (node.content === t('treeMode.newNode') || node.content === t('treeMode.newRootNode')) {
         inputRef.current?.focus();
         inputRef.current?.select();
@@ -295,7 +297,8 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
          toast({
             variant: 'destructive',
             title: t('treeMode.deleteLastErrorTitle'),
-            description: t('treeMode.deleteLastErrorDescription')
+            description: t('treeMode.deleteLastErrorDescription'),
+            duration: 3000,
         });
     }
   };
@@ -359,7 +362,7 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
 
   const handleExport = (format: 'txt' | 'json' | 'md') => {
     if (!treeData || treeData.length === 0 || (treeData.length === 1 && !treeData[0].content && treeData[0].children.length === 0)) {
-        toast({ variant: "destructive", title: t('export.emptyNoteErrorTitle'), description: t('export.emptyTreeErrorDescription') });
+        toast({ variant: "destructive", title: t('export.emptyNoteErrorTitle'), description: t('export.emptyTreeErrorDescription'), duration: 3000 });
         return;
     }
 
@@ -386,7 +389,7 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
 
   const handleCopyToClipboard = () => {
     if (!treeData || treeData.length === 0 || (treeData.length === 1 && !treeData[0].content && treeData[0].children.length === 0)) {
-        toast({ variant: "destructive", title: t('export.emptyNoteErrorTitle'), description: t('export.emptyTreeErrorDescription') });
+        toast({ variant: "destructive", title: t('export.emptyNoteErrorTitle'), description: t('export.emptyTreeErrorDescription'), duration: 3000 });
         return;
     }
     const mdContent = generateMarkdownTree(treeData);
@@ -394,14 +397,14 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
         toast({ title: t('treeMode.copySuccessTitle'), description: t('treeMode.copySuccessDescription'), duration: 2000 });
     }).catch(err => {
         console.error('Failed to copy: ', err);
-        toast({ variant: "destructive", title: t('treeMode.copyErrorTitle'), description: t('treeMode.copyErrorDescription') });
+        toast({ variant: "destructive", title: t('treeMode.copyErrorTitle'), description: t('treeMode.copyErrorDescription'), duration: 3000 });
     });
   };
 
 
   const handleSaveTreeDraft = () => {
     if (!treeData || treeData.length === 0) {
-        toast({ variant: "destructive", title: t('treeMode.emptyTreeErrorTitle'), description: t('treeMode.emptyTreeErrorDescription') });
+        toast({ variant: "destructive", title: t('treeMode.emptyTreeErrorTitle'), description: t('treeMode.emptyTreeErrorDescription'), duration: 3000 });
         return;
     }
 
@@ -420,7 +423,7 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
       toast({ title: t('treeMode.draftSavedTitle'), description: t('treeMode.draftSavedDescription', { draftName: newDraft.name }), duration: 2000 });
     } catch (error) {
       console.error("Error saving tree draft:", error);
-      toast({ variant: "destructive", title: t('treeMode.draftSaveErrorTitle'), description: t('treeMode.draftSaveErrorDescription') });
+      toast({ variant: "destructive", title: t('treeMode.draftSaveErrorTitle'), description: t('treeMode.draftSaveErrorDescription'), duration: 3000 });
     }
   };
 
