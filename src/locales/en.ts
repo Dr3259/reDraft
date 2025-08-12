@@ -1,14 +1,14 @@
 
 export default {
-  appTitle: 'NoteCanvas Whiteboard',
+  appTitle: 'redraft',
   appDescription: 'A browser-based whiteboard with drawing and text capabilities.',
   header: {
     title: 'NoteCanvas Whiteboard',
   },
   appModes: {
-    draft: 'Draft',
-    organize: 'Organize',
-    tree: 'Tree',
+    draft: '草稿本',
+    organize: '笔记本',
+    tree: '梳理',
     switchToOrganize: 'Switch to Organize Mode',
     switchToDraft: 'Switch to Draft Mode',
     switchToTree: 'Switch to Tree Mode',

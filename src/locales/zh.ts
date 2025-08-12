@@ -1,6 +1,6 @@
 
 export default {
-  appTitle: '笔记画布 白板',
+  appTitle: 'redraft',
   appDescription: '一个具有绘画和文本功能的浏览器白板应用。',
   header: {
     title: '笔记画布 白板',
