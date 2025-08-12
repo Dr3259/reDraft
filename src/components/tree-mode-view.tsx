@@ -281,11 +281,8 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
     const { parent } = findNodeAndParentRecursive(newTree, nodeId);
 
     if (parent) { // Node is not a root node
-      const indexToDelete = parent.children.findIndex(n => n.id === nodeId);
-      if (indexToDelete !== -1) {
-        parent.children.splice(indexToDelete, 1);
-        setTreeData(newTree);
-      }
+      parent.children = parent.children.filter(n => n.id !== nodeId);
+      setTreeData(newTree);
     } else { // Node is a root node
       if (newTree.length > 1) {
         newTree = newTree.filter(n => n.id !== nodeId);
@@ -450,8 +447,14 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
       className="relative flex flex-col h-full overflow-hidden" 
       style={{ backgroundColor: themeBackgroundColor, color: themeTextColor }}
     >
-      <div className="flex justify-between items-center p-4 border-b border-border flex-shrink-0 pr-40" style={{ borderColor: 'hsl(var(--border))' }}>
-        <h1 className="text-xl font-semibold mr-4 flex-shrink-0">{t('appModes.tree')}</h1>
+      <div className="flex flex-wrap gap-4 justify-between items-center p-4 border-b border-border flex-shrink-0" style={{ borderColor: 'hsl(var(--border))' }}>
+        <div className="flex items-center gap-4">
+          <h1 className="text-xl font-semibold flex-shrink-0">{t('appModes.tree')}</h1>
+          <Button onClick={addRootNode} className="flex-shrink-0">
+            <Plus className="mr-2 h-4 w-4" />
+            {t('treeMode.addRootNode')}
+          </Button>
+        </div>
         <div className="flex items-center space-x-2">
             <TooltipProvider>
                 <Tooltip>
@@ -464,11 +467,63 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
                         <p>{t('treeMode.copyTooltip')}</p>
                     </TooltipContent>
                 </Tooltip>
+                 <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="icon" 
+                      aria-label={t('export.title')} 
+                    >
+                      <Download className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleExport('txt')}>
+                      <FileText className="mr-2 h-4 w-4" />
+                      <span>{t('export.txt')}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExport('md')}>
+                      <FileType className="mr-2 h-4 w-4" />
+                      <span>{t('export.md')}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExport('json')}>
+                      <FileJson className="mr-2 h-4 w-4" />
+                      <span>{t('export.json')}</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline"
+                      size="icon" 
+                      onClick={() => setIsDraftsDialogOpen(true)} 
+                      aria-label={t('treeMode.manageDraftsTooltip')}
+                    >
+                      <FolderClock className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{t('treeMode.manageDraftsTooltip')}</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline"
+                      size="icon" 
+                      onClick={handleSaveTreeDraft} 
+                      aria-label={t('treeMode.saveDraftTooltip')}
+                    >
+                      <FileSignature className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{t('treeMode.saveDraftTooltip')}</p>
+                  </TooltipContent>
+                </Tooltip>
             </TooltipProvider>
-            <Button onClick={addRootNode} className="flex-shrink-0">
-            <Plus className="mr-2 h-4 w-4" />
-            {t('treeMode.addRootNode')}
-            </Button>
         </div>
       </div>
 
@@ -490,69 +545,6 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
             ))}
         </div>
       </ScrollArea>
-       <div className="absolute bottom-4 right-4 z-10 flex gap-2">
-        <TooltipProvider>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  aria-label={t('export.title')} 
-                  className="hover:bg-white/20 focus-visible:ring-1 focus-visible:ring-white/40"
-                >
-                  <Download className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleExport('txt')}>
-                  <FileText className="mr-2 h-4 w-4" />
-                  <span>{t('export.txt')}</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExport('md')}>
-                  <FileType className="mr-2 h-4 w-4" />
-                  <span>{t('export.md')}</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExport('json')}>
-                  <FileJson className="mr-2 h-4 w-4" />
-                  <span>{t('export.json')}</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => setIsDraftsDialogOpen(true)} 
-                  aria-label={t('treeMode.manageDraftsTooltip')}
-                  className="hover:bg-white/20 focus-visible:ring-1 focus-visible:ring-white/40"
-                >
-                  <FolderClock className="h-5 w-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{t('treeMode.manageDraftsTooltip')}</p>
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={handleSaveTreeDraft} 
-                  aria-label={t('treeMode.saveDraftTooltip')}
-                  className="hover:bg-white/20 focus-visible:ring-1 focus-visible:ring-white/40"
-                >
-                  <FileSignature className="h-5 w-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{t('treeMode.saveDraftTooltip')}</p>
-              </TooltipContent>
-            </Tooltip>
-        </TooltipProvider>
-       </div>
        
       <Dialog open={isDraftsDialogOpen} onOpenChange={setIsDraftsDialogOpen}>
         <DialogContent className="sm:max-w-[525px]">
@@ -606,4 +598,5 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
   );
 }
 
+    
     
