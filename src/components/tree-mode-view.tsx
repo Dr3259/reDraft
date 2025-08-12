@@ -134,16 +134,14 @@ const TreeNode: React.FC<TreeNodeProps> = ({
                 </TooltipTrigger>
                 <TooltipContent><p>{t('treeMode.addChildTooltip')}</p></TooltipContent>
             </Tooltip>
-            {level > 0 && (
-              <Tooltip>
-                  <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onAddSibling(node.id)}>
-                         <GitBranch className="h-4 w-4 transform rotate-90" />
-                      </Button>
-                  </TooltipTrigger>
-                  <TooltipContent><p>{t('treeMode.addSiblingTooltip')}</p></TooltipContent>
-              </Tooltip>
-            )}
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onAddSibling(node.id)}>
+                       <GitBranch className="h-4 w-4 transform rotate-90" />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>{t('treeMode.addSiblingTooltip')}</p></TooltipContent>
+            </Tooltip>
              <Tooltip>
                 <TooltipTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => onDelete(node.id)}>
@@ -205,17 +203,17 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
     loadDrafts();
   }, []);
 
-  const findNodeAndParentRecursive = (nodes: TreeNodeData[], nodeId: string, parent: TreeNodeData[] | null = null, parentNode: TreeNodeData | null = null): { node: TreeNodeData | null; parent: TreeNodeData[] | null, parentNode: TreeNodeData | null } => {
+  const findNodeAndParentRecursive = (nodes: TreeNodeData[], nodeId: string, parent: TreeNodeData | null = null): { node: TreeNodeData | null; parent: TreeNodeData | null } => {
     for (const node of nodes) {
       if (node.id === nodeId) {
-        return { node, parent, parentNode };
+        return { node, parent };
       }
-      const found = findNodeAndParentRecursive(node.children, nodeId, node.children, node);
+      const found = findNodeAndParentRecursive(node.children, nodeId, node);
       if (found.node) {
         return found;
       }
     }
-    return { node: null, parent: null, parentNode: null };
+    return { node: null, parent: null };
   };
 
   const findNodeRecursive = (nodes: TreeNodeData[], nodeId: string): TreeNodeData | null => {
@@ -254,52 +252,52 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
   
   const addSiblingNode = (nodeId: string) => {
     const newTree = JSON.parse(JSON.stringify(treeData));
-    const { parent: parentArray } = findNodeAndParentRecursive(newTree, nodeId);
-    
-    if (parentArray) {
-       const siblingIndex = parentArray.findIndex(n => n.id === nodeId);
+    const { parent } = findNodeAndParentRecursive(newTree, nodeId);
+
+    const newNode: TreeNodeData = {
+      id: `node-${Date.now()}-${Math.random()}`,
+      content: t('treeMode.newNode'),
+      isExpanded: true,
+      children: [],
+    };
+
+    if (parent) { // Node is not a root node
+       const siblingIndex = parent.children.findIndex(n => n.id === nodeId);
        if (siblingIndex !== -1) {
-          const newNode: TreeNodeData = {
-            id: `node-${Date.now()}-${Math.random()}`,
-            content: t('treeMode.newNode'),
-            isExpanded: true,
-            children: [],
-          };
-          parentArray.splice(siblingIndex + 1, 0, newNode);
+          parent.children.splice(siblingIndex + 1, 0, newNode);
           setTreeData(newTree);
        }
+    } else { // Node is a root node
+        const siblingIndex = newTree.findIndex(n => n.id === nodeId);
+        if (siblingIndex !== -1) {
+            newTree.splice(siblingIndex + 1, 0, newNode);
+            setTreeData(newTree);
+        }
     }
   };
 
   const deleteNode = (nodeId: string) => {
     let newTree = JSON.parse(JSON.stringify(treeData));
-    const { parent: parentArray, node: nodeToDelete } = findNodeAndParentRecursive(newTree, nodeId);
-  
-    if (parentArray && nodeToDelete) {
-      const indexToDelete = parentArray.findIndex(n => n.id === nodeId);
+    const { parent } = findNodeAndParentRecursive(newTree, nodeId);
+
+    if (parent) { // Node is not a root node
+      const indexToDelete = parent.children.findIndex(n => n.id === nodeId);
       if (indexToDelete !== -1) {
-        parentArray.splice(indexToDelete, 1);
-        if (newTree.length === 0) {
-            newTree = [{ id: 'root-1', content: t('treeMode.newRootNode'), isExpanded: true, children: [] }];
-            toast({
-                variant: 'default',
-                title: t('treeMode.deleteLastErrorTitle'),
-                description: t('treeMode.deleteLastErrorDescription'),
-                duration: 3000
-            });
-        }
+        parent.children.splice(indexToDelete, 1);
         setTreeData(newTree);
       }
-    } else if (treeData.some(n => n.id === nodeId) && treeData.length > 1) {
-        newTree = treeData.filter(n => n.id !== nodeId);
+    } else { // Node is a root node
+      if (newTree.length > 1) {
+        newTree = newTree.filter(n => n.id !== nodeId);
         setTreeData(newTree);
-    } else if (treeData.length === 1 && treeData[0].id === nodeId) {
-         toast({
-            variant: 'destructive',
-            title: t('treeMode.deleteLastErrorTitle'),
-            description: t('treeMode.deleteLastErrorDescription'),
-            duration: 3000,
+      } else {
+        toast({
+          variant: 'destructive',
+          title: t('treeMode.deleteLastErrorTitle'),
+          description: t('treeMode.deleteLastErrorDescription'),
+          duration: 3000,
         });
+      }
     }
   };
   
@@ -607,3 +605,5 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
     </div>
   );
 }
+
+    
