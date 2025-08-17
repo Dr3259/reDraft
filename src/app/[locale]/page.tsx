@@ -6,7 +6,7 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useI18n, useCurrentLocale } from '@/locales/client';
-import { Eraser, Trash2, Undo2, FolderClock, Palette, Trash, Expand, Minimize, FileSignature, FileDown, PenLine, Paintbrush, Notebook, GitFork, BookUser } from 'lucide-react';
+import { Eraser, Trash2, Undo2, FolderClock, Palette, Trash, Expand, Minimize, FileSignature, FileDown, PenLine, Paintbrush, Notebook, GitFork, BookUser, Users } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -36,6 +36,7 @@ import { cn } from '@/lib/utils';
 import { OrganizeModeView } from '@/components/organize-mode-view';
 import { TreeModeView } from '@/components/tree-mode-view';
 import { NovelistModeView } from '@/components/novelist-mode-view';
+import { CollaborativeWhiteboardView } from '@/components/collaborative-whiteboard-view';
 
 const ERASER_WIDTH = 20;
 const MAX_HISTORY_STEPS = 30;
@@ -43,7 +44,7 @@ const LOCAL_STORAGE_DRAFTS_KEY = 'whiteboardDrafts_v2';
 const LOCAL_STORAGE_THEME_KEY = 'whiteboardTheme_v1';
 
 type CanvasTheme = 'whiteboard' | 'blackboard' | 'eyecare' | 'reading';
-type AppMode = 'draft' | 'organize' | 'tree' | 'novelist';
+type AppMode = 'draft' | 'organize' | 'tree' | 'novelist' | 'whiteboard';
 
 const themeClasses: Record<CanvasTheme, string> = {
   whiteboard: 'theme-whiteboard',
@@ -731,6 +732,7 @@ export default function WhiteboardPage() {
               {currentAppMode === 'organize' && <Notebook className="h-5 w-5" />}
               {currentAppMode === 'tree' && <GitFork className="h-5 w-5" />}
               {currentAppMode === 'novelist' && <BookUser className="h-5 w-5" />}
+              {currentAppMode === 'whiteboard' && <Users className="h-5 w-5" />}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -751,6 +753,10 @@ export default function WhiteboardPage() {
              <DropdownMenuItem onClick={() => setCurrentAppMode('novelist')} disabled={currentAppMode === 'novelist'}>
               <BookUser className="mr-2 h-4 w-4" />
               <span>{t('appModes.novelist')}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setCurrentAppMode('whiteboard')} disabled={currentAppMode === 'whiteboard'}>
+              <Users className="mr-2 h-4 w-4" />
+              <span>{t('appModes.whiteboard')}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -1002,6 +1008,13 @@ export default function WhiteboardPage() {
             themeTextColor={effectivePenColor}
          />
       )}
+
+      {currentAppMode === 'whiteboard' && (
+         <CollaborativeWhiteboardView
+            themeBackgroundColor={effectiveEraserColor}
+            themeTextColor={effectivePenColor}
+         />
+      )}
       
       {currentAppMode === 'draft' && (
         <Dialog open={isDraftsDialogOpen} onOpenChange={setIsDraftsDialogOpen}>
@@ -1064,5 +1077,7 @@ export default function WhiteboardPage() {
     </div>
   );
 }
+
+    
 
     

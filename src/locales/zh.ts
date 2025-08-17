@@ -10,10 +10,12 @@ export default {
     organize: '笔记本',
     tree: '梳理',
     novelist: '小说家',
+    whiteboard: '协作白板',
     switchToOrganize: '切换到笔记本',
     switchToDraft: '切换到草稿本',
     switchToTree: '切换到梳理',
     switchToNovelist: '切换到小说家模式',
+    switchToWhiteboard: '切换到协作白板',
     organizeTitle: '笔记整理器',
     changeMode: '切换模式',
   },
@@ -220,5 +222,7 @@ export default {
     noResults: '未找到匹配的命令',
   }
 } as const;
+
+    
 
     
