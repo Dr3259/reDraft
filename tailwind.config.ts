@@ -10,9 +10,14 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['Inter', 'sans-serif'],
+        body: ['Inter', 'Noto Sans SC', 'sans-serif'],
+        headline: ['Inter', 'Noto Sans SC', 'sans-serif'],
         code: ['monospace'],
+        inter: ['Inter', 'sans-serif'],
+        'sans-sc': ['Noto Sans SC', 'sans-serif'],
+        xiaowei: ['ZCOOL XiaoWei', 'sans-serif'],
+        longcang: ['Long Cang', 'cursive'],
+        mashan: ['Ma Shan Zheng', 'cursive'],
       },
       colors: {
         background: 'hsl(var(--background))',
