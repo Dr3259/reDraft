@@ -10,12 +10,12 @@ export default {
     organize: '笔记本',
     tree: '梳理',
     novelist: '小说家',
-    whiteboard: '协作白板',
+    brainstorm: 'Brainstorm',
     switchToOrganize: 'Switch to Organize Mode',
     switchToDraft: 'Switch to Draft Mode',
     switchToTree: 'Switch to Tree Mode',
     switchToNovelist: 'Switch to Novelist Mode',
-    switchToWhiteboard: 'Switch to Collaborative Whiteboard',
+    switchToBrainstorm: 'Switch to Brainstorm',
     organizeTitle: 'Note Organizer',
     changeMode: 'Change Mode',
   },
@@ -223,7 +223,3 @@ export default {
     noResults: 'No commands match',
   }
 } as const;
-
-    
-
-    
