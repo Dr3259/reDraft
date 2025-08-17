@@ -6,7 +6,7 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useI18n, useCurrentLocale } from '@/locales/client';
-import { Eraser, Trash2, Undo2, FolderClock, Palette, Trash, Expand, Minimize, FileSignature, FileDown, PenLine, Paintbrush, Notebook, GitFork } from 'lucide-react';
+import { Eraser, Trash2, Undo2, FolderClock, Palette, Trash, Expand, Minimize, FileSignature, FileDown, PenLine, Paintbrush, Notebook, GitFork, BookUser } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -35,6 +35,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { OrganizeModeView } from '@/components/organize-mode-view';
 import { TreeModeView } from '@/components/tree-mode-view';
+import { NovelistModeView } from '@/components/novelist-mode-view';
 
 const ERASER_WIDTH = 20;
 const MAX_HISTORY_STEPS = 30;
@@ -42,7 +43,7 @@ const LOCAL_STORAGE_DRAFTS_KEY = 'whiteboardDrafts_v2';
 const LOCAL_STORAGE_THEME_KEY = 'whiteboardTheme_v1';
 
 type CanvasTheme = 'whiteboard' | 'blackboard' | 'eyecare' | 'reading';
-type AppMode = 'draft' | 'organize' | 'tree';
+type AppMode = 'draft' | 'organize' | 'tree' | 'novelist';
 
 const themeClasses: Record<CanvasTheme, string> = {
   whiteboard: 'theme-whiteboard',
@@ -71,7 +72,7 @@ export default function WhiteboardPage() {
   const locale = useCurrentLocale();
   const { toast, dismiss: dismissToast } = useToast();
 
-  const [currentAppMode, setCurrentAppMode] = useState<AppMode>('tree');
+  const [currentAppMode, setCurrentAppMode] = useState<AppMode>('novelist');
 
   const mainContainerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -729,6 +730,7 @@ export default function WhiteboardPage() {
               {currentAppMode === 'draft' && <Paintbrush className="h-5 w-5" />}
               {currentAppMode === 'organize' && <Notebook className="h-5 w-5" />}
               {currentAppMode === 'tree' && <GitFork className="h-5 w-5" />}
+              {currentAppMode === 'novelist' && <BookUser className="h-5 w-5" />}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -745,6 +747,10 @@ export default function WhiteboardPage() {
             <DropdownMenuItem onClick={() => setCurrentAppMode('tree')} disabled={currentAppMode === 'tree'}>
               <GitFork className="mr-2 h-4 w-4" />
               <span>{t('appModes.tree')}</span>
+            </DropdownMenuItem>
+             <DropdownMenuItem onClick={() => setCurrentAppMode('novelist')} disabled={currentAppMode === 'novelist'}>
+              <BookUser className="mr-2 h-4 w-4" />
+              <span>{t('appModes.novelist')}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -985,6 +991,13 @@ export default function WhiteboardPage() {
 
       {currentAppMode === 'tree' && (
          <TreeModeView
+            themeBackgroundColor={effectiveEraserColor}
+            themeTextColor={effectivePenColor}
+         />
+      )}
+      
+      {currentAppMode === 'novelist' && (
+         <NovelistModeView
             themeBackgroundColor={effectiveEraserColor}
             themeTextColor={effectivePenColor}
          />
