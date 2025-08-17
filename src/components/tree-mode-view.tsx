@@ -498,8 +498,7 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 
-                variant="ghost"
-                className="hover:bg-white/20 focus-visible:ring-white/40" 
+                variant="outline"
                 size="icon" 
                 aria-label={t('export.title')} 
               >
@@ -525,8 +524,7 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
           <Tooltip>
             <TooltipTrigger asChild>
               <Button 
-                variant="ghost"
-                className="hover:bg-white/20 focus-visible:ring-white/40"
+                variant="outline"
                 size="icon" 
                 onClick={() => setIsDraftsDialogOpen(true)} 
                 aria-label={t('treeMode.manageDraftsTooltip')}
@@ -541,8 +539,7 @@ export function TreeModeView({ themeBackgroundColor, themeTextColor }: TreeModeV
           <Tooltip>
             <TooltipTrigger asChild>
               <Button 
-                variant="ghost"
-                className="hover:bg-white/20 focus-visible:ring-white/40"
+                variant="outline"
                 size="icon" 
                 onClick={handleSaveTreeDraft} 
                 aria-label={t('treeMode.saveDraftTooltip')}

@@ -554,7 +554,3 @@ export function BrainstormModeView({ themeBackgroundColor, themeTextColor }: { t
         </div>
     );
 }
-
-    
-
-    

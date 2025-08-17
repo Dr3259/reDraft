@@ -267,6 +267,3 @@ export function NovelistModeView({ themeBackgroundColor, themeTextColor }: Novel
     </div>
   );
 }
-
-
-    
