@@ -2,7 +2,9 @@
 import type { Metadata } from 'next';
 import '../globals.css';
 import { getI18n } from '@/locales/server';
-import ClientIntlWrapper from '@/components/client-intl-wrapper';
+import { Toaster } from "@/components/ui/toaster";
+import { ClientIntlWrapper } from '@/components/client-intl-wrapper';
+
 
 export async function generateMetadata({ params: { locale } }: { params: { locale: string } }): Promise<Metadata> {
   const t = await getI18n(locale);
@@ -19,18 +21,12 @@ export default function LocaleLayout({
   children: React.ReactNode;
   params: { locale: string };
 }>) {
+  // The html and body tags are now in the root layout: src/app/layout.tsx
+  // This layout is nested inside the root layout.
   return (
-    <html lang={locale}>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Long+Cang&family=Ma+Shan+Zheng&family=Noto+Sans+SC:wght@400;500;700&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet" />
-      </head>
-      <body className="font-body antialiased">
-        <ClientIntlWrapper locale={locale}>
-          {children}
-        </ClientIntlWrapper>
-      </body>
-    </html>
+    <ClientIntlWrapper locale={locale}>
+      {children}
+      <Toaster />
+    </ClientIntlWrapper>
   );
 }

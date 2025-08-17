@@ -1,17 +1,17 @@
 
 "use client";
 
-import type React from 'react';
-import { I18nProviderClient } from '@/locales/client';
-import { Toaster } from "@/components/ui/toaster";
+import { I18nProviderClient } from "@/locales/client";
+import type React from "react";
 
-export default function ClientIntlWrapper({ children, locale }: { children: React.ReactNode, locale: string }) {
-  return (
-    <I18nProviderClient locale={locale} key={locale}>
-      <>
-        {children}
-        <Toaster />
-      </>
-    </I18nProviderClient>
-  );
+// This is a client-component that can be used in a server-component
+// to provide the I18n context to its children
+export function ClientIntlWrapper({
+  children,
+  locale,
+}: {
+  children: React.ReactNode;
+  locale: string;
+}) {
+  return <I18nProviderClient locale={locale}>{children}</I18nProviderClient>;
 }
