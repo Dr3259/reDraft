@@ -21,7 +21,6 @@ import {
     SheetDescription,
     SheetHeader,
     SheetTitle,
-    SheetTrigger,
     SheetClose,
     SheetFooter,
 } from "@/components/ui/sheet"
@@ -108,6 +107,7 @@ const TopicNode = React.memo(({
     onEndEditing,
     isEditing,
     isSelected,
+    placeholderText,
 }: {
     topic: Topic;
     onDrag: (id: string, pos: Vector) => void;
@@ -118,8 +118,8 @@ const TopicNode = React.memo(({
     onEndEditing: () => void;
     isEditing: boolean;
     isSelected: boolean;
+    placeholderText: string;
 }) => {
-    const { t } = useI18n();
     const textareaRef = React.useRef<HTMLTextAreaElement>(null);
     const nodeRef = React.useRef<HTMLDivElement>(null);
 
@@ -199,7 +199,7 @@ const TopicNode = React.memo(({
                 />
             ) : (
                 <div className="w-full h-full p-3 text-center flex items-center justify-center whitespace-pre-wrap break-words">
-                   {topic.content || t('brainstorm.placeholder')}
+                   {topic.content || placeholderText}
                 </div>
             )}
             <button
@@ -231,6 +231,7 @@ export function BrainstormModeView({ themeBackgroundColor, themeTextColor }: { t
     const [savedBoards, setSavedBoards] = React.useState<SavedBoard[]>([]);
 
     const canvasRef = React.useRef<HTMLDivElement>(null);
+    const placeholderText = t('brainstorm.placeholder');
 
     // Load saved boards on mount
     React.useEffect(() => {
@@ -536,6 +537,7 @@ export function BrainstormModeView({ themeBackgroundColor, themeTextColor }: { t
                     <TopicNode
                         key={topic.id}
                         topic={topic}
+                        placeholderText={placeholderText}
                         onDrag={updateTopicPosition}
                         onUpdate={updateTopicContent}
                         onAddChild={addChildTopic}
@@ -551,3 +553,5 @@ export function BrainstormModeView({ themeBackgroundColor, themeTextColor }: { t
         </div>
     );
 }
+
+    
