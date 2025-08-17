@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select"
 import {
     Sheet,
+    SheetTrigger,
     SheetContent,
     SheetDescription,
     SheetHeader,
@@ -553,5 +554,7 @@ export function BrainstormModeView({ themeBackgroundColor, themeTextColor }: { t
         </div>
     );
 }
+
+    
 
     
